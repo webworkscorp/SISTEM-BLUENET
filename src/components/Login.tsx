@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 // Spot Illustrations for Auth Notifications
@@ -128,6 +128,7 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
     const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isExpired, setIsExpired] = useState(false);
 
     useEffect(() => {
         try {
@@ -136,6 +137,24 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
             const paramEmail = urlParams.get('email') || hashParams.get('email');
             if (paramEmail) {
                 setEmail(paramEmail);
+            }
+
+            if (isRecoveryFlow) {
+                const tParam = urlParams.get('t') || hashParams.get('t');
+                if (tParam) {
+                    const sentTime = parseInt(tParam, 10);
+                    if (!isNaN(sentTime)) {
+                        const diffInMinutes = (Date.now() - sentTime) / (1000 * 60);
+                        if (diffInMinutes > 5) {
+                            setIsExpired(true);
+                        }
+                    } else {
+                        setIsExpired(true);
+                    }
+                } else {
+                    // No timestamp found, treat as invalid/expired under strict 5-min policy
+                    setIsExpired(true);
+                }
             }
         } catch (e) {
             // ignore url parsing error
@@ -146,7 +165,7 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
             // Pre-fill username from email
             setUsername(inviteUser.email.split('@')[0]);
         }
-    }, [isInviteFlow, inviteUser]);
+    }, [isInviteFlow, isRecoveryFlow, inviteUser]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -269,24 +288,26 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
         setError(null);
         setSuccessMessage(null);
 
-        if (!email) {
+        const trimmedEmail = email.trim();
+
+        if (!trimmedEmail) {
             setError('Por favor, ingresa tu correo electrónico primero para enviarte el enlace de recuperación.');
             return;
         }
 
         setLoading(true);
-        const generatedLink = `${window.location.origin}${window.location.pathname}?type=recovery&email=${encodeURIComponent(email)}#type=recovery`;
+        const timestamp = Date.now();
+        const generatedLink = `${window.location.origin}/?t=${timestamp}`;
 
         try {
-            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
                 redirectTo: generatedLink,
             });
 
-            setSuccessMessage('Si el correo existe en nuestro sistema, recibirás un enlace de recuperación en breve.');
-            
             if (resetError) {
                 console.error('Password reset notice:', JSON.stringify(resetError, null, 2));
             }
+            setSuccessMessage('Si el correo existe en nuestro sistema, recibirás un enlace de recuperación en breve.');
         } catch (err: any) {
             console.error('Password reset catch:', err.message);
             setSuccessMessage('Si el correo existe en nuestro sistema, recibirás un enlace de recuperación en breve.');
@@ -737,118 +758,176 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
                                 </div>
                             )}
 
-                            {isInviteFlow && !isRecoveryFlow && !isForgotPasswordMode && (
-                                <div className="form-group">
-                                    <label htmlFor="username">Nombre de usuario</label>
-                                    <input 
-                                        type="text" 
-                                        id="username" 
-                                        className="form-control" 
-                                        placeholder="Ej. Juan Pérez" 
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                        required 
-                                    />
-                                </div>
-                            )}
-
-                            {!isRecoveryFlow && (
-                                <div className="form-group">
-                                    <label htmlFor="email">Correo electrónico</label>
-                                    <input 
-                                        type="email" 
-                                        id="email" 
-                                        className="form-control" 
-                                        placeholder="correo@ejemplo.com" 
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        required 
-                                        readOnly={isInviteFlow}
-                                        style={isInviteFlow ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
-                                    />
-                                </div>
-                            )}
-
-                            {!isForgotPasswordMode && (
-                                <div className="form-group">
-                                    <label htmlFor="password">
-                                        {isRecoveryFlow ? 'Nueva contraseña' : isInviteFlow ? 'Crear contraseña' : 'Contraseña'}
-                                    </label>
-                                    <input 
-                                        type={showPassword ? "text" : "password"} 
-                                        id="password" 
-                                        className="form-control" 
-                                        placeholder="••••••••••••" 
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        required 
-                                        minLength={isRecoveryFlow ? 8 : undefined}
-                                        style={{ paddingRight: '45px' }}
-                                    />
+                            {isRecoveryFlow && isExpired ? (
+                                <div style={{
+                                    padding: '24px',
+                                    borderRadius: '16px',
+                                    backgroundColor: '#fff1f2',
+                                    border: '1px solid #fecdd3',
+                                    color: '#4c0519',
+                                    textAlign: 'center',
+                                    marginBottom: '20px',
+                                    marginTop: '20px'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                                        <div style={{
+                                            padding: '12px',
+                                            backgroundColor: '#ffe4e6',
+                                            borderRadius: '9999px',
+                                            color: '#e11d48',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: '52px',
+                                            height: '52px'
+                                        }}>
+                                            <i className="fa-solid fa-circle-xmark" style={{ fontSize: '28px' }}></i>
+                                        </div>
+                                    </div>
+                                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 8px 0', color: '#9f1239' }}>Enlace vencido o dirección inválida</h3>
+                                    <p style={{ fontSize: '13px', color: '#be123c', fontWeight: '500', margin: '0 0 20px 0', lineHeight: '1.5' }}>
+                                        Por seguridad, los enlaces de restablecimiento de contraseña expiran automáticamente a los 5 minutos de haber sido solicitados.
+                                    </p>
                                     <button
                                         type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer flex items-center justify-center p-1"
-                                        title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                        onClick={() => {
+                                            window.history.replaceState(null, '', window.location.pathname);
+                                            window.location.reload();
+                                        }}
+                                        className="btn btn-login"
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            backgroundColor: '#e11d48',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            fontSize: '13px',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                                            transition: 'background-color 0.2s'
+                                        }}
                                     >
-                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        Volver al inicio de sesión
                                     </button>
                                 </div>
-                            )}
+                            ) : (
+                                <>
+                                    {isInviteFlow && !isRecoveryFlow && !isForgotPasswordMode && (
+                                        <div className="form-group">
+                                            <label htmlFor="username">Nombre de usuario</label>
+                                            <input 
+                                                type="text" 
+                                                id="username" 
+                                                className="form-control" 
+                                                placeholder="Ej. Juan Pérez" 
+                                                value={username}
+                                                onChange={(e) => setUsername(e.target.value)}
+                                                required 
+                                            />
+                                        </div>
+                                    )}
 
-                            {(isInviteFlow || isRecoveryFlow) && !isForgotPasswordMode && (
-                                <div className="form-group">
-                                    <label htmlFor="confirmPassword">Confirmar nueva contraseña</label>
-                                    <input 
-                                        type={showConfirmPassword ? "text" : "password"} 
-                                        id="confirmPassword" 
-                                        className="form-control" 
-                                        placeholder="••••••••••••" 
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        required 
-                                        minLength={isRecoveryFlow ? 8 : undefined}
-                                        style={{ paddingRight: '45px' }}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer flex items-center justify-center p-1"
-                                        title={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                                    >
-                                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
-                                </div>
-                            )}
+                                    {!isRecoveryFlow && (
+                                        <div className="form-group">
+                                            <label htmlFor="email">Correo electrónico</label>
+                                            <input 
+                                                type="email" 
+                                                id="email" 
+                                                className="form-control" 
+                                                placeholder="correo@ejemplo.com" 
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                required 
+                                                readOnly={isInviteFlow}
+                                                style={isInviteFlow ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
+                                            />
+                                        </div>
+                                    )}
 
-                            {!isInviteFlow && !isRecoveryFlow && !isForgotPasswordMode && (
-                                <div className="form-actions" id="formActions">
-                                    <label className="remember-me">
-                                        <input 
-                                            type="checkbox" 
-                                            id="remember" 
-                                            checked={remember}
-                                            onChange={(e) => setRemember(e.target.checked)}
-                                        />
-                                        Recordarme
-                                    </label>
-                                    <a href="#" className="forgot-password" onClick={(e) => {
-                                        e.preventDefault();
-                                        setIsForgotPasswordMode(true);
-                                        setError(null);
-                                        setSuccessMessage(null);
-                                    }}>¿Olvidaste tu contraseña?</a>
-                                </div>
-                            )}
+                                    {!isForgotPasswordMode && (
+                                        <div className="form-group">
+                                            <label htmlFor="password">
+                                                {isRecoveryFlow ? 'Nueva contraseña' : isInviteFlow ? 'Crear contraseña' : 'Contraseña'}
+                                            </label>
+                                            <input 
+                                                type={showPassword ? "text" : "password"} 
+                                                id="password" 
+                                                className="form-control" 
+                                                placeholder="••••••••••••" 
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                required 
+                                                minLength={isRecoveryFlow ? 8 : undefined}
+                                                style={{ paddingRight: '45px' }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer flex items-center justify-center p-1"
+                                                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                            >
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                    )}
 
-                            <div className="btn-group">
-                                <button type="submit" className="btn btn-login" id="primaryBtn" disabled={loading}>
-                                    {loading 
-                                        ? (isRecoveryFlow ? 'Guardando e iniciando...' : isForgotPasswordMode ? 'Enviando...' : isInviteFlow ? 'Registrando...' : 'Iniciando sesión...') 
-                                        : (isRecoveryFlow ? 'Guardar contraseña e iniciar sesión' : isForgotPasswordMode ? 'Enviar enlace de recuperación' : isInviteFlow ? 'Completar Registro' : 'Iniciar Sesión')
-                                    }
-                                </button>
-                            </div>
+                                    {(isInviteFlow || isRecoveryFlow) && !isForgotPasswordMode && (
+                                        <div className="form-group">
+                                            <label htmlFor="confirmPassword">Confirmar nueva contraseña</label>
+                                            <input 
+                                                type={showConfirmPassword ? "text" : "password"} 
+                                                id="confirmPassword" 
+                                                className="form-control" 
+                                                placeholder="••••••••••••" 
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                required 
+                                                minLength={isRecoveryFlow ? 8 : undefined}
+                                                style={{ paddingRight: '45px' }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer flex items-center justify-center p-1"
+                                                title={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                            >
+                                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {!isInviteFlow && !isRecoveryFlow && !isForgotPasswordMode && (
+                                        <div className="form-actions" id="formActions">
+                                            <label className="remember-me">
+                                                <input 
+                                                    type="checkbox" 
+                                                    id="remember" 
+                                                    checked={remember}
+                                                    onChange={(e) => setRemember(e.target.checked)}
+                                                />
+                                                Recordarme
+                                            </label>
+                                            <a href="#" className="forgot-password" onClick={(e) => {
+                                                e.preventDefault();
+                                                setIsForgotPasswordMode(true);
+                                                setError(null);
+                                                setSuccessMessage(null);
+                                            }}>¿Olvidaste tu contraseña?</a>
+                                        </div>
+                                    )}
+
+                                    <div className="btn-group">
+                                        <button type="submit" className="btn btn-login" id="primaryBtn" disabled={loading}>
+                                            {loading 
+                                                ? (isRecoveryFlow ? 'Guardando e iniciando...' : isForgotPasswordMode ? 'Enviando...' : isInviteFlow ? 'Registrando...' : 'Iniciando sesión...') 
+                                                : (isRecoveryFlow ? 'Guardar contraseña e iniciar sesión' : isForgotPasswordMode ? 'Enviar enlace de recuperación' : isInviteFlow ? 'Completar Registro' : 'Iniciar Sesión')
+                                            }
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </form>
 
                     </div>

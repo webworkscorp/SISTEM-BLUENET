@@ -3520,8 +3520,10 @@ const SettingsView = () => {
     
     const handlePasswordReset = async () => {
         try {
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/?type=recovery`,
+            const trimmedEmail = email.trim();
+            const timestamp = Date.now();
+            const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+                redirectTo: `${window.location.origin}/?t=${timestamp}`,
             });
             if (error) throw error;
             alert('Se ha enviado un enlace a tu correo para restablecer la contraseña.');
