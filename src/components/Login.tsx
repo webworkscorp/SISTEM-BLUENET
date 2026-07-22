@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 // Spot Illustrations for Auth Notifications
@@ -126,6 +126,8 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     useEffect(() => {
         try {
@@ -773,7 +775,7 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
                                         {isRecoveryFlow ? 'Nueva contraseña' : isInviteFlow ? 'Crear contraseña' : 'Contraseña'}
                                     </label>
                                     <input 
-                                        type="password" 
+                                        type={showPassword ? "text" : "password"} 
                                         id="password" 
                                         className="form-control" 
                                         placeholder="••••••••••••" 
@@ -781,7 +783,16 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
                                         onChange={(e) => setPassword(e.target.value)}
                                         required 
                                         minLength={isRecoveryFlow ? 8 : undefined}
+                                        style={{ paddingRight: '45px' }}
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer flex items-center justify-center p-1"
+                                        title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
                                 </div>
                             )}
 
@@ -789,7 +800,7 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
                                 <div className="form-group">
                                     <label htmlFor="confirmPassword">Confirmar nueva contraseña</label>
                                     <input 
-                                        type="password" 
+                                        type={showConfirmPassword ? "text" : "password"} 
                                         id="confirmPassword" 
                                         className="form-control" 
                                         placeholder="••••••••••••" 
@@ -797,7 +808,16 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         required 
                                         minLength={isRecoveryFlow ? 8 : undefined}
+                                        style={{ paddingRight: '45px' }}
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer flex items-center justify-center p-1"
+                                        title={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                    >
+                                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
                                 </div>
                             )}
 
