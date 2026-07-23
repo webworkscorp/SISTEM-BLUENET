@@ -20,7 +20,8 @@ import {
 } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import Cropper from 'react-easy-crop';
-import { Joyride } from 'react-joyride';
+import Shepherd from 'shepherd.js';
+import 'shepherd.js/dist/css/shepherd.css';
 import { OnboardingRobot } from './components/OnboardingRobot';
 
 // --- ILUSTRACIONES DE ESTADO VACÍO PERSONALIZADAS POR SECCIÓN ---
@@ -477,6 +478,8 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
     const [clientActiveTab, setClientActiveTab] = useState('general');
     const [previousView, setPreviousView] = useState<string | null>(null);
+    const [isTourMode, setIsTourMode] = useState(false);
+    const [currentTourStepId, setCurrentTourStepId] = useState<string | null>(null);
 
     // Settings-related states
     const [profile, setProfile] = useState<{
@@ -599,6 +602,39 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
         };
     }, [user]);
 
+    const loadTourData = () => {
+        setProducts([
+            { id: 't1', name: 'Consultoría Básica', description: 'Servicio de consultoría', price: 1500, commissionRate: 10, status: 'Activo' },
+            { id: 't2', name: 'Auditoría Completa', description: 'Auditoría de sistemas', price: 4500, commissionRate: 15, status: 'Activo' },
+            { id: 't3', name: 'Mantenimiento Mensual', description: 'Soporte continuo', price: 800, commissionRate: 5, status: 'Activo' }
+        ]);
+        setClients([
+            { id: 't1', number: '001', name: 'Tech Solutions Inc.', company: 'Tech Solutions Inc.', email: 'contacto@techsolutions.com', phone: '555-0101', status: 'Activo', dateAdded: new Date().toISOString().split('T')[0], services: [{ id: 'ts1', productId: 't1', amount: 1500, status: 'activo' }, { id: 'ts2', productId: 't3', amount: 800, status: 'activo' }] },
+            { id: 't2', number: '002', name: 'Marketing Pro', company: 'Marketing Pro', email: 'hola@marketingpro.com', phone: '555-0202', status: 'Activo', dateAdded: new Date().toISOString().split('T')[0], services: [{ id: 'ts3', productId: 't2', amount: 4500, status: 'activo' }] },
+            { id: 't3', number: '003', name: 'Carlos Díaz', company: '', email: 'carlos.diaz@email.com', phone: '555-0303', status: 'Activo', dateAdded: new Date().toISOString().split('T')[0], services: [{ id: 'ts4', productId: 't3', amount: 800, status: 'activo' }] }
+        ]);
+        setTasks([
+            { id: 't1', name: 'Revisión trimestral', description: 'Revisar cuentas con el equipo de ventas.', status: 'Finalizada', priority: 'Alta', date: new Date().toISOString().split('T')[0], clientId: 't1', assignee: 'Ana Martínez' },
+            { id: 't2', name: 'Envío de propuesta', description: 'Propuesta de diseño web.', status: 'Finalizada', priority: 'Media', date: new Date().toISOString().split('T')[0], clientId: 't2', assignee: 'Roberto Gómez' },
+            { id: 't3', name: 'Configuración DNS', description: 'Migrar dominio a Cloudflare.', status: 'En Progreso', priority: 'Alta', date: new Date().toISOString().split('T')[0], clientId: 't1', assignee: 'Laura Ruiz' },
+            { id: 't4', name: 'Reunión de Onboarding', description: 'Presentar el equipo y objetivos del trimestre.', status: 'Finalizada', priority: 'Media', date: new Date().toISOString().split('T')[0], clientId: 't3', assignee: 'Ana Martínez' },
+            { id: 't6', name: 'Revisión de documentos', description: 'Validar la documentación técnica recibida.', status: 'Pendiente', priority: 'Media', date: new Date().toISOString().split('T')[0], clientId: 't3', assignee: 'Laura Ruiz' },
+            { id: 't5', name: 'Plan de pauta mensual', description: 'Ajustar presupuestos para campañas publicitarias.', status: 'Pendiente', priority: 'Baja', date: new Date().toISOString().split('T')[0], clientId: 't2', assignee: 'Roberto Gómez' }
+        ]);
+        setSystemUsers([
+            { id: 'u1', name: 'Ana Martínez', role: 'Admin', photo: 'https://ui-avatars.com/api/?name=Ana+Martinez&background=f3f4f6&color=374151' },
+            { id: 'u2', name: 'Roberto Gómez', role: 'Admin', photo: 'https://ui-avatars.com/api/?name=Roberto+Gomez&background=f3f4f6&color=374151' },
+            { id: 'u3', name: 'Laura Ruiz', role: 'Usuario', photo: 'https://ui-avatars.com/api/?name=Laura+Ruiz&background=f3f4f6&color=374151' }
+        ]);
+        const today = new Date().toISOString().split('T')[0];
+        setDocuments([
+            { id: 'd1', clientId: 't1', name: 'Contrato Marco.pdf', customName: 'Contrato Marco', ext: 'pdf', type: 'PDF', size: '1.2 MB', url: '#', date: today },
+            { id: 'd2', clientId: 't1', name: 'Propuesta Q3.pdf', customName: 'Propuesta Q3', ext: 'pdf', type: 'PDF', size: '850 KB', url: '#', date: today },
+            { id: 'd3', clientId: 't2', name: 'Logo Vectorizado.ai', customName: 'Logo Vectorizado', ext: 'ai', type: 'AI', size: '5.4 MB', url: '#', date: today },
+            { id: 'd4', clientId: 't3', name: 'Identificación.jpg', customName: 'Identificación', ext: 'jpg', type: 'JPG', size: '2.1 MB', url: '#', date: today }
+        ]);
+    };
+
     // Load database tables once authenticated
     const loadAllData = async (silent = false) => {
         if (!user) return;
@@ -656,10 +692,26 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
             }
 
             // 2. Fetch products / services
-            const { data: productsData } = await supabase
+            let { data: productsData } = await supabase
                 .from('servicios')
                 .select('*')
                 .order('fecha_creacion', { ascending: true });
+
+            if (productsData && productsData.length === 0) {
+                const defaultServices = [
+                    { nombre: 'Desarrollo Web Corporativo', descripcion: 'Diseño y desarrollo de sitio web corporativo responsivo y optimizado para SEO.', precio_base: 1200, comision_porcentaje: 10, estado: 'activo' },
+                    { nombre: 'Gestión de Redes Sociales', descripcion: 'Administración de canales digitales, creación de contenido y pauta publicitaria mensual.', precio_base: 450, comision_porcentaje: 15, estado: 'activo' },
+                    { nombre: 'Consultoría TI & Servidores', descripcion: 'Auditoría de sistemas, migración a la nube y soporte técnico preventivo mensual.', precio_base: 800, comision_porcentaje: 12, estado: 'activo' }
+                ];
+                const { data: seededServices } = await supabase
+                    .from('servicios')
+                    .insert(defaultServices)
+                    .select();
+                
+                if (seededServices) {
+                    productsData = seededServices;
+                }
+            }
 
             if (productsData) {
                 setProducts(productsData.map(p => ({
@@ -673,10 +725,65 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
             }
 
             // 3. Fetch clients + services
-            const { data: clientsData } = await supabase
+            let { data: clientsData } = await supabase
                 .from('clientes')
                 .select('*, cliente_servicios(*)')
                 .order('fecha_creacion', { ascending: false });
+
+            if (clientsData && clientsData.length === 0 && productsData && productsData.length > 0) {
+                const webDevService = productsData.find(p => p.nombre === 'Desarrollo Web Corporativo');
+                const socialMediaService = productsData.find(p => p.nombre === 'Gestión de Redes Sociales');
+                const cloudService = productsData.find(p => p.nombre === 'Consultoría TI & Servidores');
+
+                const defaultClients = [
+                    { nombre: 'Acme Corporación', empresa: 'Acme Corp', correo: 'contacto@acme.com', telefono: '555-1234' },
+                    { nombre: 'Distribuidora Global', empresa: 'Global Logistics', correo: 'info@global.com', telefono: '555-5678' },
+                    { nombre: 'Clínica Dental Sana', empresa: 'Sana Dent', correo: 'administracion@sanadent.com', telefono: '555-9012' },
+                    { nombre: 'Inmobiliaria Premium', empresa: 'Premium Homes', correo: 'ventas@premiumhomes.com', telefono: '555-3456' }
+                ];
+
+                const { data: seededClients } = await supabase
+                    .from('clientes')
+                    .insert(defaultClients)
+                    .select();
+
+                if (seededClients) {
+                    const clientServicesToInsert: any[] = [];
+                    
+                    const acme = seededClients.find(c => c.nombre === 'Acme Corporación');
+                    const global = seededClients.find(c => c.nombre === 'Distribuidora Global');
+                    const sana = seededClients.find(c => c.nombre === 'Clínica Dental Sana');
+                    const premium = seededClients.find(c => c.nombre === 'Inmobiliaria Premium');
+
+                    if (acme) {
+                        if (webDevService) clientServicesToInsert.push({ cliente_id: acme.id, servicio_id: webDevService.id, monto_acordado: 1200, estado: 'activo' });
+                        if (cloudService) clientServicesToInsert.push({ cliente_id: acme.id, servicio_id: cloudService.id, monto_acordado: 800, estado: 'activo' });
+                    }
+                    if (global && socialMediaService) {
+                        clientServicesToInsert.push({ cliente_id: global.id, servicio_id: socialMediaService.id, monto_acordado: 450, estado: 'activo' });
+                    }
+                    if (sana) {
+                        if (socialMediaService) clientServicesToInsert.push({ cliente_id: sana.id, servicio_id: socialMediaService.id, monto_acordado: 450, estado: 'activo' });
+                        if (webDevService) clientServicesToInsert.push({ cliente_id: sana.id, servicio_id: webDevService.id, monto_acordado: 1200, estado: 'activo' });
+                    }
+                    if (premium && cloudService) {
+                        clientServicesToInsert.push({ cliente_id: premium.id, servicio_id: cloudService.id, monto_acordado: 800, estado: 'activo' });
+                    }
+
+                    if (clientServicesToInsert.length > 0) {
+                        await supabase.from('cliente_servicios').insert(clientServicesToInsert);
+                    }
+
+                    const { data: refetchedClients } = await supabase
+                        .from('clientes')
+                        .select('*, cliente_servicios(*)')
+                        .order('fecha_creacion', { ascending: false });
+                    
+                    if (refetchedClients) {
+                        clientsData = refetchedClients;
+                    }
+                }
+            }
 
             if (clientsData) {
                 setClients(clientsData.map(c => ({
@@ -696,10 +803,82 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
             }
 
             // 4. Fetch tasks
-            const { data: tasksData } = await supabase
+            let { data: tasksData } = await supabase
                 .from('tareas')
                 .select('*, perfiles(nombre)')
                 .order('fecha_limite', { ascending: true });
+
+            if (tasksData && tasksData.length === 0 && clientsData && clientsData.length > 0) {
+                const acme = clientsData.find(c => c.nombre === 'Acme Corporación' || c.nombre === 'Acme Corporación');
+                const global = clientsData.find(c => c.nombre === 'Distribuidora Global');
+                const sana = clientsData.find(c => c.nombre === 'Clínica Dental Sana');
+                const premium = clientsData.find(c => c.nombre === 'Inmobiliaria Premium');
+
+                const defaultTasks: any[] = [];
+                const today = new Date().toISOString().split('T')[0];
+                const pastDate1 = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                const pastDate2 = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                const futureDate1 = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                const futureDate2 = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+                if (acme) {
+                    defaultTasks.push({
+                        cliente_id: acme.id,
+                        descripcion: 'Diseño de Mockup Inicial---SPLIT---Aprobación del diseño inicial del sitio web.',
+                        responsable_id: user.id,
+                        fecha_limite: pastDate1,
+                        prioridad: 'alta',
+                        estado: 'finalizada'
+                    });
+                    defaultTasks.push({
+                        cliente_id: acme.id,
+                        descripcion: 'Optimización SEO On-Page---SPLIT---Mejorar velocidad de carga y etiquetas meta.',
+                        responsable_id: user.id,
+                        fecha_limite: futureDate2,
+                        prioridad: 'media',
+                        estado: 'pendiente'
+                    });
+                }
+                if (premium) {
+                    defaultTasks.push({
+                        cliente_id: premium.id,
+                        descripcion: 'Migración de Servidor---SPLIT---Migrar base de datos a AWS.',
+                        responsable_id: user.id,
+                        fecha_limite: pastDate2,
+                        prioridad: 'alta',
+                        estado: 'finalizada'
+                    });
+                }
+                if (global) {
+                    defaultTasks.push({
+                        cliente_id: global.id,
+                        descripcion: 'Planificación de Contenido---SPLIT---Crear calendario de publicaciones de Agosto.',
+                        responsable_id: user.id,
+                        fecha_limite: today,
+                        prioridad: 'media',
+                        estado: 'finalizada'
+                    });
+                }
+                if (sana) {
+                    defaultTasks.push({
+                        cliente_id: sana.id,
+                        descripcion: 'Configuración de Correos---SPLIT---Configurar cuentas de correo corporativo.',
+                        responsable_id: user.id,
+                        fecha_limite: futureDate1,
+                        prioridad: 'baja',
+                        estado: 'pendiente'
+                    });
+                }
+
+                const { data: seededTasks } = await supabase
+                    .from('tareas')
+                    .insert(defaultTasks)
+                    .select('*, perfiles(nombre)');
+
+                if (seededTasks) {
+                    tasksData = seededTasks;
+                }
+            }
 
             if (tasksData) {
                 setTasks(tasksData.map(t => {
@@ -810,6 +989,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const customSetClients = async (value: any) => {
         let newClients = typeof value === 'function' ? value(clients) : value;
         setClients(newClients);
+        if (isTourMode) return;
 
         try {
             if (newClients.length > clients.length) {
@@ -900,6 +1080,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const customSetProducts = async (value: any) => {
         let newProducts = typeof value === 'function' ? value(products) : value;
         setProducts(newProducts);
+        if (isTourMode) return;
 
         try {
             if (newProducts.length > products.length) {
@@ -958,6 +1139,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const customSetTasks = async (value: any) => {
         let newTasks = typeof value === 'function' ? value(tasks) : value;
         setTasks(newTasks);
+        if (isTourMode) return;
 
         try {
             if (newTasks.length > tasks.length) {
@@ -1029,6 +1211,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const customSetDocuments = async (value: any) => {
         let newDocs = typeof value === 'function' ? value(documents) : value;
         setDocuments(newDocs);
+        if (isTourMode) return;
 
         try {
             if (newDocs.length > documents.length) {
@@ -1083,6 +1266,8 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const customSetProfile = async (value: any) => {
         const newProfile = typeof value === 'function' ? value(profile) : value;
         setProfile(newProfile);
+        if (isTourMode) return;
+        
         try {
             if (user) {
                 await supabase.from('perfiles').update({
@@ -1099,6 +1284,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const customSetSystemUsers = async (value: any) => {
         let newUsers = typeof value === 'function' ? value(systemUsers) : value;
         setSystemUsers(newUsers);
+        if (isTourMode) return;
 
         try {
             if (newUsers.length > systemUsers.length) {
@@ -1145,9 +1331,13 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const getClientData = (clientId: string) => ({
         client: clients.find(c => c.id === clientId),
         clientTasks: tasks.filter(t => t.clientId === clientId).sort((a: any, b: any) => {
+            if ((window as any).newlyCreatedTaskId) {
+                if (a.id === (window as any).newlyCreatedTaskId) return -1;
+                if (b.id === (window as any).newlyCreatedTaskId) return 1;
+            }
             const dateA = new Date(a.date).getTime() || 0;
             const dateB = new Date(b.date).getTime() || 0;
-            if (dateA !== dateB) return dateA - dateB;
+            if (dateA !== dateB) return dateB - dateA;
             const priorityOrder: any = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
             return (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
         }),
@@ -1220,7 +1410,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
             accesses, setAccesses,
             commissions, setCommissions,
             currentView, navigateTo,
-            selectedClientId, getClientData,
+            selectedClientId, setSelectedClientId, getClientData,
             clientActiveTab, setClientActiveTab,
             previousView,
             profile, setProfile: customSetProfile,
@@ -1236,7 +1426,10 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
             handleSaveAndNavigate,
             handleDiscardAndNavigate,
             handleCancelNavigation,
-            isSavingUnsaved
+            isSavingUnsaved,
+            isTourMode, setIsTourMode,
+            currentTourStepId, setCurrentTourStepId,
+            loadTourData, loadAllData
         }}>
             {children}
         </AppContext.Provider>
@@ -1246,7 +1439,7 @@ const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
 // --- SHARED UI COMPONENTS ---
 const ClientFormModal = ({ isOpen, onClose, onSubmit, initialData }: any) => {
-    const { products } = useContext(AppContext);
+    const { products, isTourMode, currentTourStepId } = useContext(AppContext);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -1265,19 +1458,62 @@ const ClientFormModal = ({ isOpen, onClose, onSubmit, initialData }: any) => {
                 services: initialData.services || (initialData.productId ? [{ productId: initialData.productId, amount: initialData.amount }] : [])
             });
         } else {
-            setFormData({ name: '', company: '', idNumber: '', email: '', phone: '', services: [], status: 'Activo' });
+            if (isTourMode) {
+                setFormData({
+                    name: '',
+                    company: '',
+                    idNumber: '',
+                    email: 'practica@bluenet.com',
+                    phone: '+1 (555) 0199',
+                    services: [],
+                    status: 'Activo'
+                });
+            } else {
+                setFormData({ name: '', company: '', idNumber: '', email: '', phone: '', services: [], status: 'Activo' });
+            }
         }
-    }, [initialData, isOpen]);
+    }, [initialData, isOpen, isTourMode]);
+
+    useEffect(() => {
+        if (isOpen && isTourMode && !initialData) {
+            const tour = (window as any).shepherdTour;
+            if (tour && tour.getCurrentStep()?.id === 'clients-add-practice-start') {
+                tour.next();
+            }
+        }
+    }, [isOpen, isTourMode, initialData]);
+
+    useEffect(() => {
+        if (isTourMode && currentTourStepId === 'clients-add-practice-select-product' && formData.services.length === 0) {
+            addService();
+        }
+    }, [isTourMode, currentTourStepId, formData.services.length]);
 
     if (!isOpen) return null;
 
     const handleSubmit = (e: any) => {
         e.preventDefault();
         onSubmit(formData);
+        if (isTourMode) {
+            const tour = (window as any).shepherdTour;
+            if (tour && tour.getCurrentStep()?.id === 'clients-add-practice-save') {
+                setTimeout(() => {
+                    tour.next();
+                }, 800);
+            }
+        }
     };
 
     const addService = () => {
         setFormData({ ...formData, services: [...formData.services, { productId: '', amount: '' }] });
+        if (isTourMode) {
+            const tour = (window as any).shepherdTour;
+            if (tour && tour.getCurrentStep()?.id === 'clients-add-practice-add-service') {
+                setTimeout(() => {
+                    tour.next();
+                }, 100);
+            }
+        }
     };
 
     const updateService = (index: number, field: string, value: any) => {
@@ -1289,6 +1525,14 @@ const ClientFormModal = ({ isOpen, onClose, onSubmit, initialData }: any) => {
                 productId: value,
                 amount: prod ? prod.price : ''
             };
+            if (isTourMode && value) {
+                const tour = (window as any).shepherdTour;
+                if (tour && tour.getCurrentStep()?.id === 'clients-add-practice-select-product') {
+                    setTimeout(() => {
+                        tour.next();
+                    }, 100);
+                }
+            }
         } else {
             newServices[index] = { ...newServices[index], [field]: value };
         }
@@ -1298,6 +1542,14 @@ const ClientFormModal = ({ isOpen, onClose, onSubmit, initialData }: any) => {
     const removeService = (index: number) => {
         const newServices = formData.services.filter((_, i) => i !== index);
         setFormData({ ...formData, services: newServices });
+    };
+
+    const handleCompanyFocus = () => {
+        // Auto-advance removed to favor manual "Siguiente" button validation
+    };
+
+    const handleAddServiceFocus = () => {
+        // Auto-advance removed to favor manual "Siguiente" button validation
     };
 
     return (
@@ -1316,19 +1568,19 @@ const ClientFormModal = ({ isOpen, onClose, onSubmit, initialData }: any) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-sm" />
+                                <input id="tour-client-name" required type="text" value={formData.name} disabled={isTourMode && currentTourStepId !== 'clients-add-practice-name'} onChange={e => setFormData({...formData, name: e.target.value})} className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-sm ${isTourMode && currentTourStepId !== 'clients-add-practice-name' ? 'bg-gray-50' : ''}`} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Empresa <span className="text-gray-400 font-normal text-xs">(Opcional)</span></label>
-                                <input type="text" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-sm" />
+                                <input id="tour-client-company" type="text" value={formData.company} disabled={isTourMode && currentTourStepId !== 'clients-add-practice-company'} onFocus={handleCompanyFocus} onChange={e => setFormData({...formData, company: e.target.value})} className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-sm ${isTourMode && currentTourStepId !== 'clients-add-practice-company' ? 'bg-gray-50' : ''}`} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-sm" />
+                                <input id="tour-client-email" required type="email" disabled={isTourMode && !initialData} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-sm ${isTourMode && !initialData ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                                <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-sm" />
+                                <input id="tour-client-phone" type="text" disabled={isTourMode && !initialData} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-sm ${isTourMode && !initialData ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`} />
                             </div>
                         </div>
                     </div>
@@ -1336,7 +1588,7 @@ const ClientFormModal = ({ isOpen, onClose, onSubmit, initialData }: any) => {
                     <div>
                         <div className="flex justify-between items-center border-b pb-2 mb-4">
                             <h4 className="text-sm font-semibold text-gray-900">Detalles del Servicio</h4>
-                            <button type="button" onClick={addService} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium">
+                            <button id="tour-client-add-service-btn" type="button" disabled={isTourMode && currentTourStepId !== 'clients-add-practice-add-service'} onFocus={handleAddServiceFocus} onMouseEnter={handleAddServiceFocus} onClick={addService} className={`text-xs flex items-center gap-1 font-medium ${(isTourMode && currentTourStepId !== 'clients-add-practice-add-service') ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800'}`}>
                                 <Plus size={14} /> Añadir Servicio
                             </button>
                         </div>
@@ -1346,7 +1598,7 @@ const ClientFormModal = ({ isOpen, onClose, onSubmit, initialData }: any) => {
                                 <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-gray-50 p-4 rounded-xl border border-gray-100 relative animate-in fade-in duration-150">
                                     <div className="md:col-span-6">
                                         <label className="block text-xs font-medium text-gray-500 mb-1">Producto Contratado</label>
-                                        <select required value={service.productId} onChange={e => updateService(index, 'productId', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent bg-white text-sm">
+                                        <select id="tour-client-service-select" required value={service.productId} disabled={isTourMode && !['clients-add-practice-add-service', 'clients-add-practice-select-product'].includes(currentTourStepId || '')} onChange={e => updateService(index, 'productId', e.target.value)} className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent bg-white text-sm ${isTourMode && !['clients-add-practice-add-service', 'clients-add-practice-select-product'].includes(currentTourStepId || '') ? 'bg-gray-50' : ''}`}>
                                             <option value="">Seleccione un producto</option>
                                             {products.map((p: any) => (
                                                 <option key={p.id} value={p.id}>{p.name}</option>
@@ -1375,8 +1627,8 @@ const ClientFormModal = ({ isOpen, onClose, onSubmit, initialData }: any) => {
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6 pt-4">
-                        <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                        <Button type="submit" variant="primary">Guardar</Button>
+                        <Button type="button" variant="outline" onClick={onClose} disabled={isTourMode}>Cancelar</Button>
+                        <Button id="tour-client-save-btn" type="submit" variant="primary" disabled={isTourMode && currentTourStepId !== 'clients-add-practice-save'}>Guardar</Button>
                     </div>
                 </form>
             </div>
@@ -1446,7 +1698,7 @@ const UploadFormModal = ({ isOpen, onClose, onSubmit, initialFiles = [] }: any) 
 };
 
 const TaskFormModal = ({ isOpen, onClose, onSubmit, clientId = '', initialData = null }: any) => {
-    const { clients, systemUsers } = useContext(AppContext);
+    const { clients, systemUsers, isTourMode, currentTourStepId } = useContext(AppContext);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -1509,20 +1761,40 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, clientId = '', initialData =
                 setCurrentMonth(parsed);
             }
         } else {
-            const defaultDate = new Date().toISOString().split('T')[0];
-            setFormData({ 
-                name: '', 
-                description: '', 
-                assignee: availableMembers[0]?.name || '', 
-                priority: 'Media', 
-                clientId: clientId, 
-                status: 'Pendiente',
-                date: defaultDate
-            });
-            
+            if (isTourMode) {
+                setFormData({ 
+                    name: '', 
+                    description: '', 
+                    assignee: '', 
+                    priority: '', 
+                    clientId: clientId, 
+                    status: 'Pendiente',
+                    date: ''
+                });
+            } else {
+                const defaultDate = new Date().toISOString().split('T')[0];
+                setFormData({ 
+                    name: '', 
+                    description: '', 
+                    assignee: availableMembers[0]?.name || '', 
+                    priority: 'Media', 
+                    clientId: clientId, 
+                    status: 'Pendiente',
+                    date: defaultDate
+                });
+            }
             setCurrentMonth(new Date());
         }
     }, [isOpen, clientId, initialData, availableMembers]);
+
+    useEffect(() => {
+        if (isOpen && isTourMode && !initialData) {
+            const tour = (window as any).shepherdTour;
+            if (tour && tour.getCurrentStep()?.id === 'clients-profile-tasks-new') {
+                tour.next();
+            }
+        }
+    }, [isOpen, isTourMode, initialData]);
 
     if (!isOpen) return null;
 
@@ -1533,6 +1805,14 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, clientId = '', initialData =
             ...formData,
             assignee: finalAssignee || 'Sin asignar'
         });
+        if (isTourMode) {
+            const tour = (window as any).shepherdTour;
+            if (tour && tour.getCurrentStep()?.id === 'task-form-save') {
+                setTimeout(() => {
+                    tour.next();
+                }, 800);
+            }
+        }
     };
 
     // Calculate calendar days
@@ -1625,16 +1905,16 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, clientId = '', initialData =
                             )}
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Título de la Tarea</label>
-                                <input required type="text" placeholder="Ej. Recopilar firmas de contrato" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 border border-gray-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-xs font-medium placeholder-gray-400" />
+                                <input id="tour-task-name" required type="text" placeholder="Ej. Recopilar firmas de contrato" value={formData.name} disabled={isTourMode && currentTourStepId !== 'task-form-name'} onChange={e => setFormData({...formData, name: e.target.value})} className={`w-full px-3 py-2 border border-gray-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-xs font-medium placeholder-gray-400 ${isTourMode && currentTourStepId !== 'task-form-name' ? 'bg-gray-50' : ''}`} />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Descripción</label>
-                                <textarea placeholder="Describe el objetivo de esta tarea..." rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-xs font-medium placeholder-gray-400"></textarea>
+                                <textarea id="tour-task-desc" placeholder="Describe el objetivo de esta tarea..." rows={3} value={formData.description} disabled={isTourMode && currentTourStepId !== 'task-form-desc'} onChange={e => setFormData({...formData, description: e.target.value})} className={`w-full px-3 py-2 border border-gray-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent text-xs font-medium placeholder-gray-400 ${isTourMode && currentTourStepId !== 'task-form-desc' ? 'bg-gray-50' : ''}`}></textarea>
                             </div>
 
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Prioridad</label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div id="tour-task-priority" className="grid grid-cols-3 gap-2">
                                     {['Baja', 'Media', 'Alta'].map((p) => {
                                         const pColors: any = {
                                             'Baja': 'border-blue-100 text-blue-700 bg-blue-50/30 hover:bg-blue-50',
@@ -1651,10 +1931,15 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, clientId = '', initialData =
                                             <button
                                                 key={p}
                                                 type="button"
-                                                onClick={() => setFormData({ ...formData, priority: p })}
+                                                onClick={() => {
+                                                    if (isTourMode && currentTourStepId !== 'task-form-priority') return;
+                                                    setFormData({ ...formData, priority: p });
+                                                }}
+                                                disabled={isTourMode && currentTourStepId !== 'task-form-priority'}
                                                 className={`
                                                     py-2 px-3 border rounded-xl text-center font-bold text-[11px] transition-all duration-200
                                                     ${isSelected ? pSelectedColors[p] : pColors[p]}
+                                                    ${isTourMode && currentTourStepId !== 'task-form-priority' ? 'opacity-50 cursor-not-allowed' : ''}
                                                 `}
                                             >
                                                 {p}
@@ -1671,7 +1956,7 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, clientId = '', initialData =
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Asignar a</label>
                                 
-                                <div className="grid grid-cols-2 gap-2 max-h-[140px] overflow-y-auto pr-1">
+                                <div id="tour-task-assignee" className="grid grid-cols-2 gap-2 max-h-[140px] overflow-y-auto pr-1">
                                     {availableMembers.map((member) => {
                                         const isSelected = formData.assignee === member.name;
                                         return (
@@ -1679,10 +1964,13 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, clientId = '', initialData =
                                                 key={member.id}
                                                 type="button"
                                                 onClick={() => {
+                                                    if (isTourMode && currentTourStepId !== 'task-form-assignee') return;
                                                     setFormData({ ...formData, assignee: member.name });
                                                 }}
+                                                disabled={isTourMode && currentTourStepId !== 'task-form-assignee'}
                                                 className={`
                                                     flex items-center gap-2 p-1.5 rounded-xl border text-left transition-all duration-200
+                                                    ${isTourMode && currentTourStepId !== 'task-form-assignee' ? 'opacity-50 cursor-not-allowed' : ''}
                                                     ${isSelected 
                                                         ? 'border-[#203e71] bg-blue-50/50 shadow-sm ring-1 ring-[#203e71]' 
                                                         : 'border-gray-200 hover:bg-gray-50 hover:border-gray-350'}
@@ -1718,21 +2006,23 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, clientId = '', initialData =
                             {/* Calendar Picker (Custom simple implementation) */}
                             <div className="pt-2">
                                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Fecha Límite</label>
-                                <div className="border border-gray-200 rounded-xl p-3 bg-white shadow-sm">
+                                <div id="tour-task-date" className="border border-gray-200 rounded-xl p-3 bg-white shadow-sm">
                                     <div className="flex justify-between items-center mb-3">
                                         <button type="button" onClick={() => {
+                                            if (isTourMode && currentTourStepId !== 'task-form-date') return;
                                             const prev = new Date(currentMonth);
                                             prev.setMonth(prev.getMonth() - 1);
                                             setCurrentMonth(prev);
-                                        }} className="p-1 hover:bg-gray-100 rounded-full text-gray-500"><ChevronLeft size={14} /></button>
+                                        }} disabled={isTourMode && currentTourStepId !== 'task-form-date'} className={`p-1 hover:bg-gray-100 rounded-full text-gray-500 ${isTourMode && currentTourStepId !== 'task-form-date' ? 'opacity-30 cursor-not-allowed' : ''}`}><ChevronLeft size={14} /></button>
                                         <span className="text-[11px] font-bold text-gray-800 capitalize">
                                             {currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
                                         </span>
                                         <button type="button" onClick={() => {
+                                            if (isTourMode && currentTourStepId !== 'task-form-date') return;
                                             const next = new Date(currentMonth);
                                             next.setMonth(next.getMonth() + 1);
                                             setCurrentMonth(next);
-                                        }} className="p-1 hover:bg-gray-100 rounded-full text-gray-500"><ChevronRight size={14} /></button>
+                                        }} disabled={isTourMode && currentTourStepId !== 'task-form-date'} className={`p-1 hover:bg-gray-100 rounded-full text-gray-500 ${isTourMode && currentTourStepId !== 'task-form-date' ? 'opacity-30 cursor-not-allowed' : ''}`}><ChevronRight size={14} /></button>
                                     </div>
                                     <div className="grid grid-cols-7 gap-1 mb-1">
                                         {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => (
@@ -1762,12 +2052,17 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, clientId = '', initialData =
                                                     <button
                                                         key={idx}
                                                         type="button"
-                                                        onClick={() => setFormData({ ...formData, date: cellDateStr })}
+                                                        onClick={() => {
+                                                            if (isTourMode && currentTourStepId !== 'task-form-date') return;
+                                                            setFormData({ ...formData, date: cellDateStr });
+                                                        }}
+                                                        disabled={isTourMode && currentTourStepId !== 'task-form-date'}
                                                         className={`
                                                             h-6.5 w-6.5 text-[10px] font-bold rounded-full flex items-center justify-center transition-all duration-150 relative
                                                             ${!cell.isCurrentMonth ? 'text-gray-300 hover:bg-gray-100' : 'text-gray-700 hover:bg-gray-200'}
                                                             ${isSelected ? '!bg-[#203e71] !text-white shadow-sm scale-110 z-10' : ''}
                                                             ${isToday && !isSelected ? 'border border-[#203e71] text-[#203e71]' : ''}
+                                                            ${isTourMode && currentTourStepId !== 'task-form-date' ? 'opacity-50 cursor-not-allowed' : ''}
                                                         `}
                                                     >
                                                         {cell.day}
@@ -1807,7 +2102,7 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, clientId = '', initialData =
                     </div>
                     <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                        <Button type="submit" variant="primary">Guardar</Button>
+                        <Button id="tour-task-save" type="submit" variant="primary" disabled={isTourMode && currentTourStepId !== 'task-form-save'}>Guardar</Button>
                     </div>
                 </form>
             </div>
@@ -1850,7 +2145,7 @@ const Badge = ({ children, type = 'default' }: any) => {
     );
 };
 
-const Button = ({ children, variant = 'primary', icon, onClick, className = '' }: any) => {
+const Button = ({ children, variant = 'primary', icon, onClick, className = '', ...props }: any) => {
     const variants: any = {
         primary: 'bg-[#203e71] hover:bg-[#1a345e] text-white shadow-sm shadow-blue-950/15', // Brand Navy
         secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-700',
@@ -1862,6 +2157,7 @@ const Button = ({ children, variant = 'primary', icon, onClick, className = '' }
         <button 
             onClick={onClick}
             className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors text-sm ${variants[variant]} ${className}`}
+            {...props}
         >
             {icon && icon}
             {children}
@@ -1872,7 +2168,7 @@ const Button = ({ children, variant = 'primary', icon, onClick, className = '' }
 
 // --- VIEWS ---
 const DashboardView = () => {
-    const { clients, products, tasks, navigateTo, systemUsers, onlineUsers } = useContext(AppContext);
+    const { clients, products, tasks, navigateTo, systemUsers, onlineUsers, isTourMode, currentTourStepId } = useContext(AppContext);
 
     // Calculate dynamic total active clients
     const activeClientsCount = useMemo(() => {
@@ -1970,7 +2266,12 @@ const DashboardView = () => {
                         <h3 className="text-2xl font-bold">Servicios Ofrecidos</h3>
                         <p className="text-xs text-white/60 mt-1">{products.length} Soluciones en catálogo</p>
                     </div>
-                    <Button variant="primary" onClick={() => navigateTo('products')} className="mt-4 w-full bg-[#203e71] text-white hover:bg-[#1a345e] border-none">
+                    <Button 
+                        variant="primary" 
+                        onClick={() => navigateTo('products')} 
+                        disabled={isTourMode}
+                        className={`mt-4 w-full bg-[#203e71] text-white hover:bg-[#1a345e] border-none ${isTourMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
                         Gestionar Servicios
                     </Button>
                 </Card>
@@ -2104,7 +2405,14 @@ const DashboardView = () => {
                 <Card id="tour-recent-clients" className="lg:col-span-2 animate-stagger" style={{ animationDelay: '700ms' }}>
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-semibold text-lg text-gray-800">Clientes Recientes</h3>
-                        <Button variant="outline" onClick={() => navigateTo('clients')} className="text-xs py-1 px-3">Ver todos</Button>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => navigateTo('clients')} 
+                            className={`text-xs py-1 px-3 ${isTourMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={isTourMode}
+                        >
+                            Ver todos
+                        </Button>
                     </div>
                     {clients.length === 0 ? (
                         <EmptyClientsIllustration title="Sin clientes recientes" description="No hay clientes registrados en el sistema." />
@@ -2176,7 +2484,7 @@ const DashboardView = () => {
 };
 
 const ClientsListView = () => {
-    const { clients, setClients, navigateTo, profile } = useContext(AppContext);
+    const { clients, setClients, navigateTo, profile, isTourMode, currentTourStepId, tasks, setTasks, documents, setDocuments } = useContext(AppContext);
     const [searchQuery, setSearchQuery] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -2199,6 +2507,25 @@ const ClientsListView = () => {
         };
         setClients([...clients, newClient]);
         setIsAddModalOpen(false);
+        if (isTourMode) {
+            const today = new Date().toISOString().split('T')[0];
+            const newTasks = [
+                { id: `t_${Date.now()}_1`, name: 'Reunión de alineación inicial', description: 'Reunión inicial de bienvenida y definición de objetivos.', status: 'Pendiente', priority: 'Media', date: today, clientId: newClient.id, assignee: 'Ana Martínez' },
+                { id: `t_${Date.now()}_2`, name: 'Configuración del entorno de pruebas', description: 'Crear accesos iniciales y levantar servidor staging.', status: 'En Progreso', priority: 'Alta', date: today, clientId: newClient.id, assignee: 'Laura Ruiz' },
+                { id: `t_${Date.now()}_3`, name: 'Carga de archivos iniciales', description: 'Subir contrato y propuesta comercial firmados.', status: 'Finalizada', priority: 'Baja', date: today, clientId: newClient.id, assignee: 'Roberto Gómez' },
+                { id: `t_${Date.now()}_4`, name: 'Definición de KPI trimestrales', description: 'Establecer métricas de éxito para el proyecto.', status: 'Pendiente', priority: 'Media', date: today, clientId: newClient.id, assignee: 'Ana Martínez' },
+                { id: `t_${Date.now()}_5`, name: 'Solicitud de accesos a sistemas', description: 'Pedir credenciales para el gestor de contenidos y analítica.', status: 'Pendiente', priority: 'Alta', date: today, clientId: newClient.id, assignee: 'Laura Ruiz' }
+            ];
+            const newDocs = [
+                { id: `d_${Date.now()}_1`, clientId: newClient.id, name: `Contrato de Servicios - ${newClient.name}.pdf`, customName: 'Contrato de Servicios', ext: 'pdf', type: 'PDF', size: '245 KB', url: '#', date: today },
+                { id: `d_${Date.now()}_2`, clientId: newClient.id, name: 'Propuesta Comercial Inicial.pdf', customName: 'Propuesta Comercial', ext: 'pdf', type: 'PDF', size: '1.2 MB', url: '#', date: today },
+                { id: `d_${Date.now()}_3`, clientId: newClient.id, name: 'Auditoría Técnica de Sistemas.docx', customName: 'Auditoría de Sistemas', ext: 'docx', type: 'DOCX', size: '89 KB', url: '#', date: today },
+                { id: `d_${Date.now()}_4`, clientId: newClient.id, name: 'Plan de Trabajo Detallado.xlsx', customName: 'Plan de Trabajo', ext: 'xlsx', type: 'XLSX', size: '42 KB', url: '#', date: today }
+            ];
+            setTasks([...tasks, ...newTasks]);
+            setDocuments([...documents, ...newDocs]);
+            navigateTo('clientProfile', newClient.id, 'general');
+        }
     };
 
     return (
@@ -2209,18 +2536,27 @@ const ClientsListView = () => {
                     subtitle="Gestión de expedientes digitales"
                 />
                 <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="flex items-center bg-white px-4 py-2 rounded-xl border border-gray-200 focus-within:border-[#488fcc] transition-colors shadow-sm flex-1 md:w-64">
+                    <div id="tour-clients-search-container" className={`flex items-center bg-white px-4 py-2 rounded-xl border border-gray-200 focus-within:border-[#488fcc] transition-colors shadow-sm flex-1 md:w-64 ${(isTourMode && currentTourStepId === 'clients-search') ? 'ring-2 ring-[#488fcc] ring-opacity-50 border-[#488fcc]' : ''}`}>
                         <Search size={16} className="text-gray-400" />
                         <input 
+                            id="tour-clients-search-input"
                             type="text" 
                             placeholder="Buscar clientes..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-transparent border-none focus:outline-none ml-2 w-full text-sm text-gray-700"
+                            disabled={isTourMode}
+                            className={`bg-transparent border-none focus:outline-none ml-2 w-full text-sm text-gray-700 ${isTourMode ? 'cursor-not-allowed' : ''}`}
                         />
                     </div>
-                    <div id="tour-clients-add-btn">
-                        <Button icon={<Plus size={16} />} onClick={() => setIsAddModalOpen(true)}>Nuevo Cliente</Button>
+                    <div id="tour-clients-add-wrapper">
+                        <Button 
+                            id="tour-clients-add-btn"
+                            icon={<Plus size={16} />} 
+                            onClick={() => setIsAddModalOpen(true)}
+                            className={(isTourMode && currentTourStepId !== 'clients-add-practice-start') ? 'opacity-50 cursor-not-allowed' : ''}
+                        >
+                            Nuevo Cliente
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -2233,8 +2569,12 @@ const ClientsListView = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredClients.map((client: any, i: number) => (
-                            <Card key={client.id} className="group cursor-pointer hover:border-[#488fcc]/50 transition-all animate-stagger" style={{ animationDelay: `${100 + i * 50}ms` }} >
-                                <div onClick={() => navigateTo('clientProfile', client.id)}>
+                            <Card 
+                                key={client.id} 
+                                className={`group transition-all animate-stagger ${isTourMode ? 'opacity-75 grayscale-[0.2]' : 'cursor-pointer hover:border-[#488fcc]/50'}`} 
+                                style={{ animationDelay: `${100 + i * 50}ms` }} 
+                            >
+                                <div onClick={() => !isTourMode && navigateTo('clientProfile', client.id)}>
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 text-xl font-bold group-hover:bg-[#203e71] group-hover:text-white transition-colors">
                                             {client.name.charAt(0)}
@@ -2321,7 +2661,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 };
 
 const ClientProfileView = () => {
-    const { selectedClientId, getClientData, clients, setClients, tasks, setTasks, documents, setDocuments, navigateTo, products, clientActiveTab, setClientActiveTab, previousView, profile } = useContext(AppContext);
+    const { selectedClientId, getClientData, clients, setClients, tasks, setTasks, documents, setDocuments, navigateTo, products, clientActiveTab, setClientActiveTab, previousView, profile, isTourMode, currentTourStepId } = useContext(AppContext);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<any>(null);
@@ -2427,17 +2767,22 @@ const ClientProfileView = () => {
     ];
 
     return (
-        <div className="space-y-6">
+        <div id="tour-client-profile-container" className="space-y-6">
             <div className="flex items-center gap-4 mb-2 animate-stagger" style={{ animationDelay: '0ms' }}>
                 <button 
                     onClick={() => navigateTo(previousView === 'tasks_global' ? 'tasks_global' : 'clients')} 
-                    className="flex items-center justify-center h-8 w-8 rounded-full hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition-colors"
+                    disabled={isTourMode}
+                    className={`flex items-center justify-center h-8 w-8 rounded-full hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition-colors ${isTourMode ? 'cursor-not-allowed opacity-50' : ''}`}
                     title="Volver"
                 >
                     <ArrowLeft size={18} />
                 </button>
                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <button onClick={() => navigateTo(previousView === 'tasks_global' ? 'tasks_global' : 'clients')} className="hover:text-gray-900 transition-colors">
+                    <button 
+                        onClick={() => navigateTo(previousView === 'tasks_global' ? 'tasks_global' : 'clients')} 
+                        disabled={isTourMode}
+                        className={`hover:text-gray-900 transition-colors ${isTourMode ? 'cursor-not-allowed' : ''}`}
+                    >
                         {previousView === 'tasks_global' ? 'Tareas' : 'Clientes'}
                     </button>
                     <ChevronRight size={14} />
@@ -2453,10 +2798,28 @@ const ClientProfileView = () => {
                         <span className="flex items-center gap-1"><Calendar size={16} /> Registrado: {client.dateAdded ? new Date(client.dateAdded).toLocaleDateString() : 'Sin fecha'}</span>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" icon={<Edit2 size={16} />} onClick={() => setIsEditModalOpen(true)}>Editar</Button>
+                <div id="tour-client-profile-actions" className="flex gap-2">
+                    <Button 
+                        id="tour-client-edit" 
+                        variant="outline" 
+                        icon={<Edit2 size={16} />} 
+                        onClick={() => setIsEditModalOpen(true)}
+                        disabled={isTourMode}
+                        className={isTourMode ? 'opacity-50 cursor-not-allowed' : ''}
+                    >
+                        Editar
+                    </Button>
                     {isAdmin && (
-                        <Button variant="outline" className="text-red-500 hover:bg-red-50 hover:border-red-200" icon={<Trash2 size={16} />} onClick={() => setIsDeleteClientModalOpen(true)}>Eliminar</Button>
+                        <Button 
+                            id="tour-client-delete" 
+                            variant="outline" 
+                            className={`text-red-500 hover:bg-red-50 hover:border-red-200 ${isTourMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                            icon={<Trash2 size={16} />} 
+                            onClick={() => setIsDeleteClientModalOpen(true)}
+                            disabled={isTourMode}
+                        >
+                            Eliminar
+                        </Button>
                     )}
                 </div>
             </div>
@@ -2466,12 +2829,28 @@ const ClientProfileView = () => {
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setClientActiveTab(tab.id)}
+                        id={`tour-tab-${tab.id}`}
+                        onClick={() => {
+                            if (isTourMode) {
+                                if (tab.id === 'docs' && currentTourStepId === 'clients-profile-docs-tab') {
+                                    setClientActiveTab(tab.id);
+                                } else if (tab.id === 'tasks' && currentTourStepId === 'clients-profile-tasks-tab') {
+                                    setClientActiveTab(tab.id);
+                                }
+                                // No manual switching to general during tour
+                            } else {
+                                setClientActiveTab(tab.id);
+                            }
+                        }}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                             clientActiveTab === tab.id 
                                 ? 'bg-white text-gray-900 shadow-sm' 
                                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                        }`}
+                        } ${isTourMode && (
+                            (tab.id === 'docs' && currentTourStepId !== 'clients-profile-docs-tab') ||
+                            (tab.id === 'tasks' && currentTourStepId !== 'clients-profile-tasks-tab') ||
+                            (tab.id === 'general')
+                        ) ? 'cursor-not-allowed opacity-70' : ''}`}
                     >
                         {tab.icon}
                         {tab.label}
@@ -2484,9 +2863,9 @@ const ClientProfileView = () => {
                 {clientActiveTab === 'general' && (
                     <div className="space-y-6">
                         {/* Info Principal */}
-                        <Card className="space-y-6 animate-stagger" style={{ animationDelay: '300ms' }}>
-                            <h3 className="text-lg font-semibold border-b border-gray-100 pb-2">Información Principal</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+                        <Card id="tour-client-general-card" className="space-y-6 animate-stagger" style={{ animationDelay: '300ms' }}>
+                            <h3 id="tour-client-personal-info" className="text-lg font-semibold border-b border-gray-100 pb-2">Información Principal</h3>
+                            <div id="tour-client-info-grid" className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
                                 <div>
                                     <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Correo Electrónico</label>
                                     <p className="mt-1 font-medium text-gray-900 flex items-center gap-2">
@@ -2498,8 +2877,8 @@ const ClientProfileView = () => {
                                     <p className="mt-1 font-medium text-gray-900">{client.phone}</p>
                                 </div>
                             </div>
-
-                            <h3 className="text-lg font-semibold border-b border-gray-100 pb-2 pt-4">Detalles del Servicio</h3>
+ 
+                            <h3 id="tour-client-services" className="text-lg font-semibold border-b border-gray-100 pb-2 pt-4">Detalles del Servicio</h3>
                             <div className="grid grid-cols-1 gap-y-4">
                                 {client.services && client.services.length > 0 ? (
                                     client.services.map((service: any, idx: number) => {
@@ -2539,7 +2918,7 @@ const ClientProfileView = () => {
 
                 {}
                 {clientActiveTab === 'docs' && (
-                     <div>
+                     <div id="tour-client-docs-container">
                          <div className="flex justify-between items-center mb-6 animate-stagger" style={{ animationDelay: '300ms' }}>
                             <h3 className="text-lg font-semibold">Gestor Documental</h3>
                             <input 
@@ -2549,7 +2928,12 @@ const ClientProfileView = () => {
                                 className="hidden" 
                                 multiple
                             />
-                            <Button icon={<Upload size={16} />} onClick={() => fileInputRef.current?.click()}>
+                            <Button 
+                                icon={<Upload size={16} />} 
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isTourMode}
+                                className={isTourMode ? 'opacity-50 cursor-not-allowed' : ''}
+                            >
                                 Subir Archivo
                             </Button>
                          </div>
@@ -2561,25 +2945,32 @@ const ClientProfileView = () => {
                          ) : (
                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 {clientDocs.map((doc: any, i: number) => (
-                                    <Card key={doc.id} className="flex flex-col items-center p-4 text-center group hover:border-blue-200 animate-stagger cursor-pointer" style={{ animationDelay: `${400 + i * 50}ms` }} onClick={() => handleOpenDocument(doc)}>
+                                    <Card 
+                                        key={doc.id} 
+                                        className={`flex flex-col items-center p-4 text-center group hover:border-blue-200 animate-stagger ${isTourMode ? '' : 'cursor-pointer'}`} 
+                                        style={{ animationDelay: `${400 + i * 50}ms` }} 
+                                        onClick={() => !isTourMode && handleOpenDocument(doc)}
+                                    >
                                         <div className={`h-16 w-16 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform ${getFileColor(doc.name)}`}>
                                             {getFileIcon(doc.name)}
                                         </div>
                                         <h4 className="text-sm font-medium text-gray-800 truncate w-full" title={doc.name}>{doc.name}</h4>
                                         <p className="text-xs text-gray-400 mt-1">{doc.type} • {doc.size}</p>
                                         
-                                        <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button 
-                                                className="p-1.5 bg-red-50 rounded-lg text-red-500 hover:bg-red-100" 
-                                                title="Eliminar"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setDocToDelete(doc);
-                                                }}
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
+                                        {!isTourMode && (
+                                            <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    className="p-1.5 bg-red-50 rounded-lg text-red-500 hover:bg-red-100" 
+                                                    title="Eliminar"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDocToDelete(doc);
+                                                    }}
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        )}
                                     </Card>
                                 ))}
                              </div>
@@ -2589,24 +2980,41 @@ const ClientProfileView = () => {
 
                 {}
                 {clientActiveTab === 'tasks' && (
-                     <div>
+                     <div id="tour-client-tasks-container">
                          <div className="flex justify-between items-center mb-6 animate-stagger" style={{ animationDelay: '300ms' }}>
                             <h3 className="text-lg font-semibold">Tareas del Cliente</h3>
-                            <Button icon={<Plus size={16} />} onClick={() => { setEditingTask(null); setIsTaskModalOpen(true); }}>Nueva Tarea</Button>
+                            <Button 
+                                id="tour-task-new-btn" 
+                                icon={<Plus size={16} />} 
+                                onClick={() => { 
+                                    if (isTourMode && currentTourStepId !== 'clients-profile-tasks-new') return;
+                                    setEditingTask(null); 
+                                    setIsTaskModalOpen(true); 
+                                }}
+                                className={isTourMode && currentTourStepId !== 'clients-profile-tasks-new' ? 'opacity-50 cursor-not-allowed' : ''}
+                            >
+                                Nueva Tarea
+                            </Button>
                          </div>
 
                          <div className="space-y-8">
                              {/* Pendientes */}
                              <div>
                                  <h4 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider animate-stagger" style={{ animationDelay: '350ms' }}>Pendientes</h4>
-                                 <div className="space-y-3">
+                                 <div id="tour-tasks-pending-list" className="space-y-3">
                                      {clientTasks.filter((t: any) => t.status !== 'Finalizada').map((task: any, i: number) => (
-                                         <Card key={task.id} className="flex flex-col sm:flex-row justify-between sm:items-center p-4 hover:border-gray-300 transition-colors animate-stagger" style={{ animationDelay: `${400 + i * 100}ms` }}>
+                                         <Card key={task.id} id={task.id === (window as any).newlyCreatedTaskId ? "tour-task-item" : (i === 0 && !(window as any).newlyCreatedTaskId ? "tour-task-item" : undefined)} className="flex flex-col sm:flex-row justify-between sm:items-center p-4 hover:border-gray-300 transition-colors animate-stagger" style={{ animationDelay: `${400 + i * 100}ms` }}>
                                              <div className="flex items-start gap-4">
-                                                <button onClick={() => {
-                                                    const updatedTasks = tasks.map((t: any) => t.id === task.id ? { ...t, status: 'Finalizada' } : t);
-                                                    setTasks(updatedTasks);
-                                                }} className="mt-1 h-8 w-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 focus:outline-none transition-colors border-gray-300 hover:border-gray-400">
+                                                 <button 
+                                                    id={i === 0 ? "tour-task-status-btn" : undefined} 
+                                                    onClick={() => {
+                                                        if (isTourMode) return;
+                                                        const updatedTasks = tasks.map((t: any) => t.id === task.id ? { ...t, status: 'Finalizada' } : t);
+                                                        setTasks(updatedTasks);
+                                                    }} 
+                                                    disabled={isTourMode}
+                                                    className={`mt-1 h-8 w-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 focus:outline-none transition-colors border-gray-300 ${isTourMode ? 'cursor-not-allowed' : 'hover:border-gray-400'}`}
+                                                >
                                                 </button>
                                                 <div>
                                                     <h4 className="font-medium text-gray-900 flex items-center gap-2">
@@ -2621,10 +3029,24 @@ const ClientProfileView = () => {
                                                     </div>
                                                 </div>
                                              </div>
-                                             <div className="mt-4 sm:mt-0 flex gap-2">
-                                                <Button variant="ghost" className="p-2" onClick={() => { setEditingTask(task); setIsTaskModalOpen(true); }}><Edit2 size={16}/></Button>
+                                             <div id={i === 0 ? "tour-task-actions" : undefined} className={`mt-4 sm:mt-0 flex gap-2 ${isTourMode ? 'opacity-50' : ''}`}>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    className="p-2" 
+                                                    onClick={() => { setEditingTask(task); setIsTaskModalOpen(true); }}
+                                                    disabled={isTourMode}
+                                                >
+                                                    <Edit2 size={16}/>
+                                                </Button>
                                                 {isAdmin && (
-                                                    <Button variant="ghost" className="p-2 text-red-500 hover:text-red-700" onClick={() => setTaskToDelete(task)}><Trash2 size={16}/></Button>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        className="p-2 text-red-500 hover:text-red-700" 
+                                                        onClick={() => setTaskToDelete(task)}
+                                                        disabled={isTourMode}
+                                                    >
+                                                        <Trash2 size={16}/>
+                                                    </Button>
                                                 )}
                                              </div>
                                          </Card>
@@ -2639,16 +3061,21 @@ const ClientProfileView = () => {
 
                              {/* Finalizadas */}
                              {clientTasks.filter((t: any) => t.status === 'Finalizada').length > 0 && (
-                                 <div>
+                                 <div id="tour-tasks-completed-section">
                                      <h4 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider animate-stagger" style={{ animationDelay: '500ms' }}>Finalizadas</h4>
                                      <div className="space-y-3 opacity-80">
                                          {clientTasks.filter((t: any) => t.status === 'Finalizada').map((task: any, i: number) => (
                                              <Card key={task.id} className="flex flex-col sm:flex-row justify-between sm:items-center p-4 bg-gray-50 hover:border-gray-300 transition-colors animate-stagger" style={{ animationDelay: `${600 + i * 100}ms` }}>
                                                  <div className="flex items-start gap-4">
-                                                    <button onClick={() => {
-                                                        const updatedTasks = tasks.map((t: any) => t.id === task.id ? { ...t, status: 'Pendiente' } : t);
-                                                        setTasks(updatedTasks);
-                                                    }} className="mt-1 h-8 w-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 focus:outline-none transition-colors bg-green-500 border-green-500">
+                                                    <button 
+                                                       onClick={() => {
+                                                           if (isTourMode) return;
+                                                           const updatedTasks = tasks.map((t: any) => t.id === task.id ? { ...t, status: 'Pendiente' } : t);
+                                                           setTasks(updatedTasks);
+                                                       }} 
+                                                       disabled={isTourMode}
+                                                       className={`mt-1 h-8 w-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 focus:outline-none transition-colors bg-green-500 border-green-500 ${isTourMode ? 'cursor-not-allowed' : ''}`}
+                                                   >
                                                         <CheckCircle size={20} className="text-white" />
                                                     </button>
                                                     <div>
@@ -2664,10 +3091,24 @@ const ClientProfileView = () => {
                                                         </div>
                                                     </div>
                                                  </div>
-                                                 <div className="mt-4 sm:mt-0 flex gap-2">
-                                                    <Button variant="ghost" className="p-2" onClick={() => { setEditingTask(task); setIsTaskModalOpen(true); }}><Edit2 size={16}/></Button>
+                                                 <div className={`mt-4 sm:mt-0 flex gap-2 ${isTourMode ? 'opacity-50' : ''}`}>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        className="p-2" 
+                                                        onClick={() => { setEditingTask(task); setIsTaskModalOpen(true); }}
+                                                        disabled={isTourMode}
+                                                    >
+                                                        <Edit2 size={16}/>
+                                                    </Button>
                                                     {isAdmin && (
-                                                        <Button variant="ghost" className="p-2 text-red-500 hover:text-red-700" onClick={() => setTaskToDelete(task)}><Trash2 size={16}/></Button>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            className="p-2 text-red-500 hover:text-red-700" 
+                                                            onClick={() => setTaskToDelete(task)}
+                                                            disabled={isTourMode}
+                                                        >
+                                                            <Trash2 size={16}/>
+                                                        </Button>
                                                     )}
                                                  </div>
                                              </Card>
@@ -2695,7 +3136,8 @@ const ClientProfileView = () => {
                             id: `${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}#`,
                             date: data.date || new Date().toISOString().split('T')[0]
                         };
-                        setTasks([...tasks, newTask]);
+                        setTasks([newTask, ...tasks]);
+                        if (isTourMode) (window as any).newlyCreatedTaskId = newTask.id;
                     }
                     setIsTaskModalOpen(false);
                     setEditingTask(null);
@@ -2784,6 +3226,7 @@ const GenericListView = ({
     headerContent, 
     hideActions = false 
 }: any) => {
+    const { isTourMode } = useContext(AppContext);
     return (
         <div className="space-y-6">
             <SectionTitle 
@@ -2810,7 +3253,7 @@ const GenericListView = ({
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
                             <tr>
-                                {columns.map((col: any, i: number) => <th key={i} className="px-6 py-4 font-medium">{col.header}</th>)}
+                                {columns.map((col: any, i: number) => <th key={i} id={`tour-col-${col.header.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`} className="px-6 py-4 font-medium">{col.header}</th>)}
                                 {!hideActions && <th className="px-6 py-4 text-right">Acciones</th>}
                             </tr>
                         </thead>
@@ -2824,8 +3267,9 @@ const GenericListView = ({
                             ) : data.map((row: any, i: number) => (
                                 <tr 
                                     key={i} 
-                                    onClick={onRowClick ? () => onRowClick(row) : undefined}
-                                    className={`hover:bg-gray-50/30 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`} 
+                                    id={i === 0 ? "tour-service-item" : undefined}
+                                    onClick={onRowClick && !isTourMode ? () => onRowClick(row) : undefined}
+                                    className={`hover:bg-gray-50/30 transition-colors ${onRowClick && !isTourMode ? 'cursor-pointer' : ''}`} 
                                 >
                                     {columns.map((col: any, j: number) => (
                                         <td key={j} className="px-6 py-4">
@@ -2834,11 +3278,12 @@ const GenericListView = ({
                                     ))}
                                     {!hideActions && (
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                            <div id={i === 0 ? "tour-service-actions" : undefined} className={`flex items-center justify-end gap-1.5 ${isTourMode ? 'opacity-50 pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
                                                 {onEditClick && (
                                                     <button 
-                                                        onClick={() => onEditClick(row)} 
-                                                        className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                                                        disabled={isTourMode}
+                                                        onClick={() => { if (!isTourMode) onEditClick(row); }} 
+                                                        className={`p-1.5 text-gray-400 rounded-lg transition-colors ${isTourMode ? 'cursor-not-allowed opacity-50' : 'hover:text-gray-900 hover:bg-gray-100'}`}
                                                         title="Editar"
                                                     >
                                                         <Edit2 size={15} />
@@ -2846,8 +3291,9 @@ const GenericListView = ({
                                                 )}
                                                 {onDeleteClick && (
                                                     <button 
-                                                        onClick={() => onDeleteClick(row)} 
-                                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        disabled={isTourMode}
+                                                        onClick={() => { if (!isTourMode) onDeleteClick(row); }} 
+                                                        className={`p-1.5 text-gray-400 rounded-lg transition-colors ${isTourMode ? 'cursor-not-allowed opacity-50' : 'hover:text-red-600 hover:bg-red-50'}`}
                                                         title="Eliminar"
                                                     >
                                                         <Trash2 size={15} />
@@ -2855,6 +3301,7 @@ const GenericListView = ({
                                                 )}
                                                 {!onEditClick && !onDeleteClick && (
                                                     <button 
+                                                        disabled={isTourMode}
                                                         className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100"
                                                     >
                                                         <MoreVertical size={15} />
@@ -2874,6 +3321,7 @@ const GenericListView = ({
 };
 
 const ServiceFormModal = ({ isOpen, onClose, onSubmit, initialData = null }: any) => {
+    const { isTourMode, currentTourStepId } = useContext(AppContext);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -2896,6 +3344,15 @@ const ServiceFormModal = ({ isOpen, onClose, onSubmit, initialData = null }: any
         }
     }, [isOpen, initialData]);
 
+    useEffect(() => {
+        if (isOpen && isTourMode && !initialData) {
+            const tour = (window as any).shepherdTour;
+            if (tour && tour.getCurrentStep()?.id === 'products-add') {
+                tour.next();
+            }
+        }
+    }, [isOpen, isTourMode, initialData]);
+
     if (!isOpen) return null;
 
     const handleSubmit = (e: any) => {
@@ -2905,6 +3362,14 @@ const ServiceFormModal = ({ isOpen, onClose, onSubmit, initialData = null }: any
             price: Number(formData.price),
             commissionRate: Number(formData.commissionRate)
         });
+        if (isTourMode) {
+            const tour = (window as any).shepherdTour;
+            if (tour && tour.getCurrentStep()?.id === 'products-add-practice-save') {
+                setTimeout(() => {
+                    tour.next();
+                }, 800);
+            }
+        }
     };
 
     return (
@@ -2912,39 +3377,91 @@ const ServiceFormModal = ({ isOpen, onClose, onSubmit, initialData = null }: any
             <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center p-6 border-b border-gray-100">
                     <h3 className="text-lg font-semibold text-gray-900">{initialData ? 'Editar Servicio' : 'Nuevo Servicio'}</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">
+                    <button onClick={onClose} disabled={isTourMode} className={`text-gray-400 hover:text-gray-700 transition-colors ${isTourMode ? 'opacity-50 cursor-not-allowed' : ''}`}>
                         <X size={20} />
                     </button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Servicio</label>
-                        <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent bg-white" placeholder="Ej. Contabilidad Mensual" />
+                        <input
+                            id="tour-product-name"
+                            required
+                            type="text"
+                            value={formData.name}
+                            disabled={isTourMode && currentTourStepId !== 'products-add-practice-name'}
+                            onChange={e => setFormData({...formData, name: e.target.value})}
+                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent ${isTourMode && currentTourStepId !== 'products-add-practice-name' ? 'bg-gray-50' : 'bg-white'}`}
+                            placeholder="Ej. Contabilidad Mensual"
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                        <textarea rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent bg-white" placeholder="Breve descripción..."></textarea>
+                        <textarea
+                            id="tour-product-description"
+                            rows={3}
+                            value={formData.description}
+                            disabled={isTourMode && currentTourStepId !== 'products-add-practice-desc'}
+                            onChange={e => setFormData({...formData, description: e.target.value})}
+                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent ${isTourMode && currentTourStepId !== 'products-add-practice-desc' ? 'bg-gray-50' : 'bg-white'}`}
+                            placeholder="Breve descripción..."
+                        ></textarea>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Precio Base ($)</label>
-                            <input required type="number" min="0" step="any" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent bg-white" placeholder="Ej. 500" />
+                            <input
+                                id="tour-product-price"
+                                required
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={formData.price}
+                                disabled={isTourMode && currentTourStepId !== 'products-add-practice-price'}
+                                onChange={e => setFormData({...formData, price: e.target.value})}
+                                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent ${isTourMode && currentTourStepId !== 'products-add-practice-price' ? 'bg-gray-50' : 'bg-white'}`}
+                                placeholder="Ej. 500"
+                            />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Comisión (%)</label>
-                            <input required type="number" min="0" max="100" step="any" value={formData.commissionRate} onChange={e => setFormData({...formData, commissionRate: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent bg-white" placeholder="Ej. 10" />
+                            <input
+                                id="tour-product-commission"
+                                required
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="any"
+                                value={formData.commissionRate}
+                                disabled={isTourMode && currentTourStepId !== 'products-add-practice-commission'}
+                                onChange={e => setFormData({...formData, commissionRate: e.target.value})}
+                                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent ${isTourMode && currentTourStepId !== 'products-add-practice-commission' ? 'bg-gray-50' : 'bg-white'}`}
+                                placeholder="Ej. 10"
+                            />
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                        <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent bg-white">
+                        <select
+                            value={formData.status}
+                            disabled={isTourMode}
+                            onChange={e => setFormData({...formData, status: e.target.value})}
+                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#488fcc] focus:border-transparent ${isTourMode ? 'bg-gray-50' : 'bg-white'}`}
+                        >
                             <option value="Activo">Activo</option>
                             <option value="Inactivo">Inactivo</option>
                         </select>
                     </div>
                     <div className="flex justify-end gap-3 mt-6">
-                        <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                        <Button type="submit" variant="primary">Guardar</Button>
+                        <Button type="button" variant="outline" onClick={onClose} disabled={isTourMode}>Cancelar</Button>
+                        <Button
+                            id="tour-product-save-btn"
+                            type="submit"
+                            variant="primary"
+                            disabled={isTourMode && currentTourStepId !== 'products-add-practice-save'}
+                        >
+                            Guardar
+                        </Button>
                     </div>
                 </form>
             </div>
@@ -2984,7 +3501,7 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, itemName, title = '¿E
 };
 
 const ProductsView = () => {
-    const { products, setProducts, profile } = useContext(AppContext);
+    const { products, setProducts, profile, isTourMode } = useContext(AppContext);
     const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
     const [editingService, setEditingService] = useState<any>(null);
     const [serviceToDelete, setServiceToDelete] = useState<any>(null);
@@ -3009,7 +3526,8 @@ const ProductsView = () => {
                 id: newId,
                 ...data
             };
-            setProducts([...products, newService]);
+            setProducts([newService, ...products]);
+            if (isTourMode) (window as any).newlyCreatedServiceId = newId;
         }
         setIsServiceModalOpen(false);
         setEditingService(null);
@@ -3024,7 +3542,7 @@ const ProductsView = () => {
     };
 
     return (
-        <>
+        <div id="tour-products-grid">
             <GenericListView 
                 title="Catálogo de Servicios" 
                 description="Gestión de productos y servicios ofrecidos" 
@@ -3049,7 +3567,7 @@ const ProductsView = () => {
                 onConfirm={handleDeleteConfirm}
                 itemName={serviceToDelete?.name || ''}
             />
-        </>
+        </div>
     );
 };
 
@@ -3152,16 +3670,13 @@ const GlobalTasksView = () => {
     );
 
     return (
-        <>
+        <div id="tour-tasks-grid">
             <GenericListView 
                 title="Gestor de Tareas" 
                 description="Control global de tareas y asignaciones" 
                 columns={columns} 
                 data={displayData} 
                 headerContent={filterHeader}
-                addLabel="Nueva Tarea"
-                addBtnId="tour-tasks-add-btn"
-                onAddClick={() => { setEditingTask(null); setIsTaskModalOpen(true); }}
                 hideActions={true}
                 onRowClick={(task: any) => {
                     if (task.clientId) {
@@ -3183,13 +3698,13 @@ const GlobalTasksView = () => {
                             id: `${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}#`,
                             date: data.date || new Date().toISOString().split('T')[0]
                         };
-                        setTasks([...tasks, newTask]);
+                        setTasks([newTask, ...tasks]);
                     }
                     setIsTaskModalOpen(false);
                     setEditingTask(null);
                 }}
             />
-        </>
+        </div>
     );
 };
 
@@ -3625,7 +4140,7 @@ const SettingsView = () => {
 
     return (
         <div className="space-y-6 animate-stagger" style={{ animationDelay: '0ms' }}>
-            <div className="bg-white rounded-3xl md:rounded-[2rem] border border-gray-200 shadow-sm flex flex-col lg:flex-row overflow-hidden min-h-[700px]">
+            <div id="tour-settings-container" className="bg-white rounded-3xl md:rounded-[2rem] border border-gray-200 shadow-sm flex flex-col lg:flex-row overflow-hidden min-h-[700px]">
                 {/* SIDEBAR */}
                 <div className="w-full lg:w-[280px] bg-[#FAFAFA] lg:border-r border-b lg:border-b-0 border-gray-200 flex flex-col flex-shrink-0">
                     {/* Profile Info */}
@@ -3662,6 +4177,7 @@ const SettingsView = () => {
                             <div className="px-3 space-y-1">
                                 {profile.role === 'admin' && (
                                     <button
+                                        id="tour-settings-users-tab"
                                         onClick={() => setActiveHighlight('Usuarios')}
                                         className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full text-[14px] font-medium transition-colors ${activeHighlight === 'Usuarios' ? 'bg-[#F3F4F6] text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
                                     >
@@ -3674,7 +4190,7 @@ const SettingsView = () => {
                     </div>
                     
                     <div className="p-3 border-t border-gray-200">
-                         <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-full text-[14px] font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+                         <button id="tour-settings-logout" onClick={() => setShowLogoutModal(true)} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-full text-[14px] font-medium text-gray-600 hover:bg-gray-100 transition-colors">
                              <LogOut size={18} />
                              Cerrar sesión
                          </button>
@@ -3767,7 +4283,7 @@ const SettingsView = () => {
                         
                         {/* 3. USUARIOS */}
                         {activeHighlight === 'Usuarios' && (
-                            <div className="max-w-4xl">
+                            <div id="tour-settings-users-table" className="max-w-4xl">
                                 {editingUser ? (
                                     <form onSubmit={handleAddOrEditUser} className="space-y-6">
                                         <div className="flex justify-between items-center pb-6 border-b border-gray-200">
@@ -4119,16 +4635,17 @@ const SettingsView = () => {
 
 
 // --- MAIN LAYOUT ---
-const SidebarItem = ({ icon, label, id, active, onClick, index }: any) => (
+const SidebarItem = ({ icon, label, id, active, onClick, index, disabled }: any) => (
     <button 
         id={`tour-nav-${id}`}
-        onClick={() => onClick(id)}
+        onClick={() => !disabled && onClick(id)}
         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 animate-stagger-left ${
             active 
             ? 'bg-[#203e71] text-white font-semibold shadow-sm shadow-blue-950/15' 
             : 'text-gray-500 hover:bg-gray-100/80 hover:text-gray-900'
-        }`}
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         style={{ animationDelay: `${100 + index * 50}ms` }}
+        disabled={disabled}
     >
         {React.cloneElement(icon, { size: 20, className: active ? 'text-[#488fcc]' : 'text-gray-400' })}
         <span>{label}</span>
@@ -4170,294 +4687,1018 @@ const AppLayout = () => {
         toast, setToast, showUnsavedModal, handleSaveAndNavigate, 
         handleDiscardAndNavigate, handleCancelNavigation, isSavingUnsaved 
     } = useContext(AppContext);
+    const { setSelectedClientId, setClientActiveTab, clientActiveTab, clients, selectedClientId } = useContext(AppContext);
+    const stateRef = React.useRef({
+        currentView,
+        clientActiveTab,
+        selectedClientId,
+        clients,
+    });
+
+    useEffect(() => {
+        stateRef.current = {
+            currentView,
+            clientActiveTab,
+            selectedClientId,
+            clients,
+        };
+    }, [currentView, clientActiveTab, selectedClientId, clients]);
+
     const [isInviteFlow, setIsInviteFlow] = useState(() => window.location.hash.includes('type=invite') || window.location.search.includes('type=invite'));
     const [isRecoveryFlow, setIsRecoveryFlow] = useState(() => {
         const href = window.location.href;
-        return href.includes('type=recovery') || href.includes('mode=recovery') || href.includes('reset_token');
+        return href.includes('type=recovery') || href.includes('mode=recovery') || href.includes('reset_token') || href.includes('#access_token') || href.includes('?t=');
     });
+    const [hasSentToOtherTab, setHasSentToOtherTab] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    // BroadcastChannel handshake to sync recovery across tabs
+    useEffect(() => {
+        const authChannel = new BroadcastChannel('supabase-auth-recovery-channel');
+        
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data?.type === 'PING_RECOVERY') {
+                const hasUrlParams = window.location.href.includes('type=recovery') || 
+                                     window.location.href.includes('mode=recovery') || 
+                                     window.location.href.includes('reset_token') || 
+                                     window.location.href.includes('#access_token') ||
+                                     window.location.href.includes('?t=');
+                if (!hasUrlParams) {
+                    authChannel.postMessage({ type: 'PONG_RECOVERY' });
+                }
+            } else if (event.data?.type === 'RECOVERY_ACTIVATED') {
+                setIsRecoveryFlow(true);
+                if (event.data.url) {
+                    window.history.replaceState(null, '', event.data.url);
+                    supabase.auth.getSession();
+                }
+            }
+        };
+        
+        authChannel.addEventListener('message', handleMessage);
+
+        // If we are the recovery tab, let's ping other tabs to see if they are active
+        const hasUrlParams = window.location.href.includes('type=recovery') || 
+                             window.location.href.includes('mode=recovery') || 
+                             window.location.href.includes('reset_token') || 
+                             window.location.href.includes('#access_token') ||
+                             window.location.href.includes('?t=');
+
+        if (hasUrlParams) {
+            let pongReceived = false;
+
+            const handlePongMessage = (event: MessageEvent) => {
+                if (event.data?.type === 'PONG_RECOVERY') {
+                    pongReceived = true;
+                    authChannel.postMessage({
+                        type: 'RECOVERY_ACTIVATED',
+                        url: window.location.href
+                    });
+                    setHasSentToOtherTab(true);
+                    
+                    // Attempt to close this tab automatically after 2.5s
+                    setTimeout(() => {
+                        window.close();
+                    }, 2500);
+                }
+            };
+
+            authChannel.addEventListener('message', handlePongMessage);
+            authChannel.postMessage({ type: 'PING_RECOVERY' });
+
+            // Stop listening for PONG after 250ms
+            const timer = setTimeout(() => {
+                authChannel.removeEventListener('message', handlePongMessage);
+            }, 250);
+
+            return () => {
+                clearTimeout(timer);
+                authChannel.removeEventListener('message', handlePongMessage);
+                authChannel.removeEventListener('message', handleMessage);
+                authChannel.close();
+            };
+        }
+        
+        return () => {
+            authChannel.removeEventListener('message', handleMessage);
+            authChannel.close();
+        };
+    }, []);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     const [onboardingPhase, setOnboardingPhase] = useState<'robot' | 'tour' | 'done'>('robot');
     const [tourStepIndex, setTourStepIndex] = useState(0);
     const [pendingTourStep, setPendingTourStep] = useState<number | null>(null);
+    const [tourActiveNavId, setTourActiveNavId] = useState<string | null>(null);
 
-    // Tour Steps for guided onboarding
-    const tourSteps = [
-        {
-            target: '#tour-nav-dashboard',
-            content: '¡Hola! Soy Bluebot y te daré un recorrido súper genial y claro. Empezamos en el Dashboard: tu panel de control central donde verás el pulso y las estadísticas clave de tu negocio. ¡Vamos a explorar cada parte!',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'right' as const,
-            title: '🚀 ¡Bienvenido a tu Centro de Control!'
-        },
-        {
-            target: '#tour-stat-sales',
-            content: 'Muestra la suma mensual de todos los servicios activos contratados por tus clientes. Se calcula de forma automática para reflejar tus ingresos comerciales reales.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'bottom' as const,
-            title: '💰 Total Ventas (Ingresos Activos)'
-        },
-        {
-            target: '#tour-stat-clients',
-            content: 'Indica cuántos clientes activos tienes actualmente en tu cartera. Te ayuda a monitorear el volumen de cuentas activas en la plataforma.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'bottom' as const,
-            title: '👥 Clientes Activos en Cartera'
-        },
-        {
-            target: '#tour-stat-tasks',
-            content: 'Muestra el porcentaje de avance y el total de tareas finalizadas. ¡Es tu indicador perfecto para medir la productividad del equipo!',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'bottom' as const,
-            title: '✅ Avance de Tareas'
-        },
-        {
-            target: '#tour-stat-products',
-            content: 'Aquí ves las soluciones o productos disponibles en tu catálogo. Puedes hacer clic en "Gestionar Servicios" para agregar nuevos paquetes.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'bottom' as const,
-            title: '📦 Portafolio de Servicios'
-        },
-        {
-            target: '#tour-chart-flow',
-            content: 'Esta gráfica de barras compara visualmente los ingresos facturados por cliente. Al pasar el cursor verás los montos exactos para identificar a tus clientes principales.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'top' as const,
-            title: '📊 Flujo Financiero por Cliente'
-        },
-        {
-            target: '#tour-chart-pie',
-            content: 'Un gráfico circular que desglosa qué porcentaje de tus ingresos proviene de cada servicio. ¡Así descubres al instante cuál es tu servicio más vendido!',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'top' as const,
-            title: '🍰 Distribución de Servicios'
-        },
-        {
-            target: '#tour-recent-clients',
-            content: 'Acceso directo a los últimos clientes dados de alta con su empresa y servicios vinculados.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'top' as const,
-            title: '📋 Clientes Recientes'
-        },
-        {
-            target: '#tour-team-members',
-            content: 'Lista de los colaboradores de tu equipo, su rol y un indicador verde en vivo cuando están conectados en el sistema.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'top' as const,
-            title: '👥 Tu Equipo de Trabajo'
-        },
-        {
-            target: '#tour-nav-clients',
-            content: '¡Siguiente parada! La sección de Clientes. Aquí es donde gestionas todos los expedientes digitales y la información de contacto.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'right' as const,
-            title: '📇 Sección de Clientes'
-        },
-        {
-            target: '#tour-clients-header',
-            content: 'Arriba tienes un buscador inteligente. Escribe cualquier nombre de cliente o empresa para encontrarlo en milisegundos.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'bottom' as const,
-            title: '🔍 Buscador de Expedientes'
-        },
-        {
-            target: '#tour-clients-add-btn',
-            content: '¡Práctica fácil! Haz clic en este botón para registrar un nuevo cliente. Podrás ingresar su nombre, empresa, email, teléfono y asociarle sus servicios contratados.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'left' as const,
-            title: '➕ Práctica: Crear un Nuevo Cliente'
-        },
-        {
-            target: '#tour-clients-grid',
-            content: 'Cada cliente tiene su tarjeta interactiva. Al hacer clic abres su expediente con tareas, notas, documentos y opción de editar o eliminar.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'top' as const,
-            title: '📇 Fichas y Gestión de Clientes'
-        },
-        {
-            target: '#tour-nav-tasks_global',
-            content: '¡Cambiemos de vista! Te presento el Tablero de Tareas. Aquí coordinas los pendientes de todos tus clientes en un solo lugar.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'right' as const,
-            title: '📋 Tablero Global de Tareas'
-        },
-        {
-            target: '#tour-tasks-filters',
-            content: 'Filtra tus tareas rápidamente por estado ("Pendientes" / "Finalizadas") o nivel de prioridad ("Alta", "Media", "Baja") para resolver primero lo más urgente.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'bottom' as const,
-            title: '🎯 Filtros Rápidos de Tareas'
-        },
-        {
-            target: '#tour-tasks-add-btn',
-            content: '¡Práctica de creación! Con este botón creas una tarea, la asignas a un colaborador, fijas fecha de vencimiento y la asocias a un cliente.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'left' as const,
-            title: '➕ Práctica: Crear Nueva Tarea'
-        },
-        {
-            target: '#tour-nav-products',
-            content: '¡Vamos al catálogo! En Servicios configuras los productos que ofrece tu negocio y sus precios base.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'right' as const,
-            title: '📦 Catálogo de Servicios'
-        },
-        {
-            target: '#tour-products-add-btn',
-            content: '¡Práctica de creación! Al pulsar aquí agregas un nuevo servicio con su nombre, descripción, precio y porcentaje de comisión.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'left' as const,
-            title: '➕ Práctica: Crear Servicio'
-        },
-        {
-            target: '#tour-nav-settings',
-            content: 'Por último, en Configuración puedes personalizar tu perfil, el logo de tu empresa, el nombre del ERP, la moneda y administrar el equipo.',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'right' as const,
-            title: '⚙️ Configuración y Miembros'
-        },
-        {
-            target: '#tour-nav-dashboard',
-            content: '¡Felicidades! Has completado el recorrido guiado. Ahora conoces al 100% cada rincón de BLUENET. ¡Éxito gestionando tu negocio!',
-            disableBeacon: true,
-            skipBeacon: true,
-            placement: 'right' as const,
-            title: '🎉 ¡Tour Completado con Éxito!'
-        }
-    ];
 
-    const handleSkipAllOnboarding = async () => {
+    const { isTourMode, setIsTourMode, setCurrentTourStepId, loadTourData, loadAllData } = useContext(AppContext);
+    
+    const endTourAndRestore = async () => {
         setOnboardingPhase('done');
+        setIsTourMode(false);
+        setCurrentTourStepId(null);
+        setTourActiveNavId(null);
         setProfile((prev: any) => ({ ...prev, ha_visto_tutorial: true }));
         if (user) {
             localStorage.setItem(`visto_tutorial_${user.id}`, 'true');
             try {
-                await supabase.from('profiles').update({ ha_visto_tutorial: true }).eq('id', user.id);
+                await supabase.from('perfiles').update({ ha_visto_tutorial: true }).eq('id', user.id);
             } catch (err) {
                 console.error("Error updating tutorial status:", err);
             }
         }
+        navigateTo('dashboard');
+        loadAllData(true); // reload actual data
     };
 
-    const getRequiredViewForStep = (step: number): string => {
-        if (step >= 0 && step <= 8) return 'dashboard';
-        if (step >= 9 && step <= 12) return 'clients';
-        if (step >= 13 && step <= 15) return 'tasks_global';
-        if (step >= 16 && step <= 17) return 'products';
-        if (step === 18) return 'settings';
-        return 'dashboard';
+    const handleSkipAllOnboarding = async () => {
+        endTourAndRestore();
+    };
+
+    const handleStartShepherdTour = () => {
+        setOnboardingPhase('tour');
+        setIsTourMode(true);
+        loadTourData();
+        navigateTo('dashboard');
     };
 
     useEffect(() => {
-        if (pendingTourStep === null || onboardingPhase !== 'tour') return;
+        if (onboardingPhase !== 'tour') return;
 
-        const targetSelector = tourSteps[pendingTourStep]?.target;
-        if (!targetSelector) {
-            setPendingTourStep(null);
-            return;
-        }
-
-        const requiredView = getRequiredViewForStep(pendingTourStep);
-
-        if (currentView !== requiredView) {
-            navigateTo(requiredView);
-        }
-
-        let intervalId: any;
-        let attempts = 0;
-
-        const checkAndAdvance = () => {
-            attempts++;
-            const el = document.querySelector(targetSelector);
-            if (el) {
-                setTourStepIndex(pendingTourStep);
-                setPendingTourStep(null);
-                if (intervalId) clearInterval(intervalId);
-            } else if (attempts > 30) {
-                setTourStepIndex(pendingTourStep);
-                setPendingTourStep(null);
-                if (intervalId) clearInterval(intervalId);
+        const tour = new Shepherd.Tour({
+            useModalOverlay: true,
+            defaultStepOptions: {
+                classes: 'shadow-2xl bg-white border border-slate-100 rounded-2xl',
+                scrollTo: { behavior: 'smooth', block: 'center' },
+                canClickTarget: true,
+                modalOverlayOpeningPadding: 8,
+                modalOverlayOpeningRadius: 16,
+                cancelIcon: {
+                    enabled: false
+                }
             }
+        });
+
+        (window as any).shepherdTour = tour;
+
+        tour.on('start', () => {
+            setCurrentTourStepId(tour.getCurrentStep()?.id);
+        });
+
+        tour.on('show', (event: any) => {
+            const stepId = event?.step?.id;
+            setCurrentTourStepId(stepId);
+            const attachToElement = event?.step?.options?.attachTo?.element;
+            if (attachToElement && typeof attachToElement === 'string' && attachToElement.startsWith('#tour-nav-')) {
+                const navId = attachToElement.replace('#tour-nav-', '');
+                setTourActiveNavId(navId);
+            } else {
+                setTourActiveNavId(null);
+            }
+        });
+
+        const buttons = [
+            {
+                text: 'Siguiente',
+                classes: 'bg-[#203e71] hover:bg-[#2b5192] text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-colors',
+                action: tour.next
+            }
+        ];
+
+        const nextOnlyButtons = [
+            {
+                text: 'Siguiente',
+                classes: 'bg-[#203e71] hover:bg-[#2b5192] text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-colors',
+                action: () => {
+                    const currentStep = tour.getCurrentStep();
+                    const stepId = currentStep?.id;
+                    if (stepId === 'clients-add-practice-name') {
+                        const nameEl = document.querySelector('#tour-client-name') as HTMLInputElement;
+                        if (!nameEl?.value.trim()) {
+                            alert('Por favor, escribe el nombre del cliente para continuar.');
+                            return;
+                        }
+                    } else if (stepId === 'clients-add-practice-company') {
+                        const companyEl = document.querySelector('#tour-client-company') as HTMLInputElement;
+                        if (!companyEl?.value.trim()) {
+                            alert('Por favor, escribe el nombre de la empresa para continuar.');
+                            return;
+                        }
+                    } else if (stepId === 'clients-add-practice-select-product') {
+                        const selectEl = document.querySelector('#tour-client-service-select') as HTMLSelectElement;
+                        if (!selectEl || !selectEl.value || selectEl.value === '') {
+                            alert('Por favor, selecciona un producto o servicio para continuar.');
+                            return;
+                        }
+                    } else if (stepId === 'products-add-practice-name') {
+                        const nameEl = document.querySelector('#tour-product-name') as HTMLInputElement;
+                        if (!nameEl?.value.trim()) {
+                            alert('Por favor, escribe el nombre del servicio para continuar.');
+                            return;
+                        }
+                    } else if (stepId === 'products-add-practice-desc') {
+                        const descEl = document.querySelector('#tour-product-description') as HTMLInputElement;
+                        if (!descEl?.value.trim()) {
+                            alert('Por favor, escribe la descripción para continuar.');
+                            return;
+                        }
+                    } else if (stepId === 'products-add-practice-price') {
+                        const priceEl = document.querySelector('#tour-product-price') as HTMLInputElement;
+                        if (!priceEl?.value.trim()) {
+                            alert('Por favor, escribe el precio para continuar.');
+                            return;
+                        }
+                    } else if (stepId === 'products-add-practice-commission') {
+                        const commEl = document.querySelector('#tour-product-commission') as HTMLInputElement;
+                        if (!commEl?.value.trim()) {
+                            alert('Por favor, escribe la comisión para continuar.');
+                            return;
+                        }
+                    } else if (stepId === 'task-form-name') {
+                        const nameEl = document.querySelector('#tour-task-name') as HTMLInputElement;
+                        if (!nameEl?.value.trim()) {
+                            alert('Por favor, escribe el título de la tarea para continuar.');
+                            return;
+                        }
+                    } else if (stepId === 'task-form-desc') {
+                        const descEl = document.querySelector('#tour-task-desc') as HTMLTextAreaElement;
+                        if (!descEl?.value.trim()) {
+                            alert('Por favor, escribe la descripción de la tarea para continuar.');
+                            return;
+                        }
+                    } else if (stepId === 'task-form-assignee') {
+                        const selectedAssignee = document.querySelector('#tour-task-assignee .ring-1');
+                        if (!selectedAssignee) {
+                            alert('Por favor, selecciona un responsable para la tarea para continuar.');
+                            return;
+                        }
+                    } else if (stepId === 'task-form-priority') {
+                        const selectedPriority = document.querySelector('#tour-task-priority .ring-1');
+                        if (!selectedPriority) {
+                            alert('Por favor, selecciona la prioridad de la tarea para continuar.');
+                            return;
+                        }
+                    } else if (stepId === 'task-form-date') {
+                        const dateBox = document.querySelector('#tour-task-date');
+                        const isDateSelected = dateBox?.querySelector('button[class*="bg-[#203e71]"]');
+                        if (!isDateSelected) {
+                            alert('Por favor, selecciona la fecha límite para continuar.');
+                            return;
+                        }
+                    }
+                    tour.next();
+                }
+            }
+        ];
+
+        const lastButtons = [
+            {
+                text: '¡Empezar a usar BLUENET!',
+                classes: 'bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all transform hover:scale-105',
+                action: tour.cancel
+            }
+        ];
+        
+        const ensureElement = (selector: string, view: string) => {
+            return new Promise<void>((resolve) => {
+                if (stateRef.current.currentView !== view) {
+                    navigateTo(view);
+                }
+                let attempts = 0;
+                const check = setInterval(() => {
+                    const el = document.querySelector(selector) as HTMLElement;
+                    if (el && el.offsetParent !== null) {
+                        clearInterval(check);
+                        setTimeout(resolve, 300);
+                    } else if (attempts > 40) {
+                        clearInterval(check);
+                        resolve();
+                    }
+                    attempts++;
+                }, 50);
+            });
         };
 
-        checkAndAdvance();
-        intervalId = setInterval(checkAndAdvance, 40);
+        const ensureSettingsTab = (selector: string, tabName: string) => {
+            return new Promise<void>((resolve) => {
+                if (stateRef.current.currentView !== 'settings') {
+                    navigateTo('settings');
+                }
+                let clicked = false;
+                let attempts = 0;
+                const check = setInterval(() => {
+                    const el = document.querySelector(selector) as HTMLElement;
+                    if (el && el.offsetParent !== null) {
+                        clearInterval(check);
+                        setTimeout(resolve, 300);
+                        return;
+                    }
+                    if (!clicked) {
+                        const tabBtn = document.querySelector('#tour-settings-users-tab') as HTMLElement;
+                        if (tabBtn && tabName === 'Usuarios') {
+                            tabBtn.click();
+                            clicked = true;
+                        }
+                    }
+                    if (attempts > 40) {
+                        clearInterval(check);
+                        resolve();
+                    }
+                    attempts++;
+                }, 50);
+            });
+        };
+
+        const ensureClientProfile = (selector: string, tab: string) => {
+            return new Promise<void>((resolve) => {
+                let attempts = 0;
+                let navigated = false;
+
+                const check = setInterval(() => {
+                    const tour = (window as any).shepherdTour;
+                    const isTutorialActive = isTourMode;
+                    const isIntroStep = tour && tour.getCurrentStep()?.id === 'clients-profile-intro';
+                    
+                    const clients = stateRef.current.clients;
+                    const lastClient = clients && clients.length > 0 ? clients[clients.length - 1] : null;
+                    
+                    let targetCid = stateRef.current.selectedClientId;
+
+                    // During tutorial intro step, we strictly want the last created client
+                    if (isTutorialActive && isIntroStep) {
+                        // If the last client in list is a new one (id starts with client_), use it
+                        if (lastClient && lastClient.id.startsWith('client_')) {
+                            targetCid = lastClient.id;
+                        } else {
+                            // If we don't have a client_ ID yet, we must keep waiting
+                            attempts++;
+                            if (attempts < 100) return; // Wait up to 5 seconds for state update
+                            // Fallback only after long wait
+                            targetCid = lastClient ? lastClient.id : 't3';
+                        }
+                    }
+
+                    if (!targetCid) {
+                        targetCid = lastClient ? lastClient.id : 't1';
+                    }
+
+                    // Force navigation if not on the right client
+                    if (!navigated || stateRef.current.selectedClientId !== targetCid || stateRef.current.currentView !== 'clientProfile') {
+                        setSelectedClientId(targetCid);
+                        setClientActiveTab(tab);
+                        navigateTo('clientProfile', targetCid, tab);
+                        navigated = true;
+                    }
+
+                    const el = document.querySelector(selector) as HTMLElement;
+                    if (el && el.offsetParent !== null) {
+                        clearInterval(check);
+                        setTimeout(resolve, 300);
+                    } else if (attempts > 80) {
+                        clearInterval(check);
+                        resolve();
+                    }
+                    attempts++;
+                }, 50);
+            });
+        };
+
+        tour.addStep({
+            id: 'dashboard-welcome',
+            title: '🚀 ¡Bienvenido a tu Centro de Control!',
+            text: '¡Hola! Soy tu asistente. Este es tu <b>Dashboard</b>, tu panel de control central donde verás el pulso y las estadísticas clave de tu negocio. ¡Vamos a explorarlo!',
+            attachTo: { element: '#tour-nav-dashboard', on: 'right' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-nav-dashboard', 'dashboard')
+        });
+
+        tour.addStep({
+            id: 'dashboard-sales',
+            title: '💰 Total Ventas',
+            text: 'Aquí verás el <b>Total de Ventas</b>. Es la suma mensual de todos los servicios activos contratados por tus clientes.',
+            attachTo: { element: '#tour-stat-sales', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-stat-sales', 'dashboard')
+        });
+
+        tour.addStep({
+            id: 'dashboard-clients',
+            title: '👥 Clientes Activos',
+            text: 'Este indicador te muestra cuántos <b>Clientes Activos</b> tienes actualmente en tu cartera.',
+            attachTo: { element: '#tour-stat-clients', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-stat-clients', 'dashboard')
+        });
+
+        tour.addStep({
+            id: 'dashboard-tasks',
+            title: '✅ Avance de Tareas',
+            text: 'El <b>Avance de Tareas</b> mide el porcentaje y total de tareas finalizadas. ¡Ideal para medir la productividad!',
+            attachTo: { element: '#tour-stat-tasks', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-stat-tasks', 'dashboard')
+        });
+
+        tour.addStep({
+            id: 'dashboard-products',
+            title: '📦 Portafolio de Servicios',
+            text: 'Tu <b>Portafolio de Servicios</b> te indica cuántas soluciones o productos tienes configurados.',
+            attachTo: { element: '#tour-stat-products', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-stat-products', 'dashboard')
+        });
+        
+        tour.addStep({
+            id: 'dashboard-flow',
+            title: '📊 Flujo Financiero',
+            text: 'Esta gráfica de barras compara los ingresos facturados por cliente. ¡Pasa el ratón sobre ella para ver los montos!',
+            attachTo: { element: '#tour-chart-flow', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-chart-flow', 'dashboard')
+        });
+
+        tour.addStep({
+            id: 'dashboard-pie',
+            title: '🍩 Distribución de Servicios',
+            text: 'En esta gráfica puedes ver de forma visual qué porcentaje representa cada servicio en tu total de ventas.',
+            attachTo: { element: '#tour-chart-pie', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-chart-pie', 'dashboard')
+        });
+
+        tour.addStep({
+            id: 'dashboard-recent',
+            title: '⏱️ Clientes Recientes',
+            text: 'Aquí se mostrarán los últimos clientes que has registrado en el sistema para que tengas un acceso rápido.',
+            attachTo: { element: '#tour-recent-clients', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-recent-clients', 'dashboard')
+        });
+
+        tour.addStep({
+            id: 'dashboard-team',
+            title: '👥 Miembros del Equipo',
+            text: 'Este panel te muestra quiénes forman parte de tu equipo de trabajo y quién está conectado actualmente.',
+            attachTo: { element: '#tour-team-members', on: 'left' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-team-members', 'dashboard')
+        });
+
+        tour.addStep({
+            id: 'nav-clients',
+            title: '📇 Sección de Clientes',
+            text: '¡Siguiente parada! La sección de <b>Clientes</b>. Aquí organizas a todos tus contactos.',
+            attachTo: { element: '#tour-nav-clients', on: 'right' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-nav-clients', 'clients')
+        });
+
+        tour.addStep({
+            id: 'clients-grid',
+            title: '📇 Directorio Global',
+            text: 'Aquí tienes la vista principal. Cada tarjeta representa un cliente y te permite ver rápidamente su información de contacto y empresa.',
+            attachTo: { element: '#tour-clients-grid', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-clients-grid', 'clients')
+        });
+
+        tour.addStep({
+            id: 'clients-search',
+            title: '🔍 Buscar Clientes',
+            text: 'Puedes usar esta barra de búsqueda para encontrar rápidamente a cualquier cliente por su nombre o empresa.',
+            attachTo: { element: '#tour-clients-search-container', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-clients-search-container', 'clients')
+        });
+
+        tour.addStep({
+            id: 'clients-add-practice-start',
+            title: '➕ Cliente de Práctica',
+            text: '¡Vamos a registrar un cliente de prueba juntos! Haz clic en el botón <b>Nuevo Cliente</b> para comenzar.',
+            attachTo: { element: '#tour-clients-add-btn', on: 'left' },
+            buttons: [],
+            advanceOn: { selector: '#tour-clients-add-btn', event: 'click' },
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-clients-add-btn', 'clients')
+        });
+
+        tour.addStep({
+            id: 'clients-add-practice-name',
+            title: '👤 Nombre del Cliente',
+            text: 'Comienza escribiendo el nombre de tu cliente de práctica en este campo. Notarás que el Email y Teléfono ya vienen pre-rellenados y bloqueados de forma segura.',
+            attachTo: { element: '#tour-client-name', on: 'bottom' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-client-name', 'clients')
+        });
+
+        tour.addStep({
+            id: 'clients-add-practice-company',
+            title: '🏢 Nombre de la Empresa',
+            text: '¡Excelente! Ahora escribe el nombre de la empresa de este cliente aquí.',
+            attachTo: { element: '#tour-client-company', on: 'bottom' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-client-company', 'clients')
+        });
+
+        tour.addStep({
+            id: 'clients-add-practice-add-service',
+            title: '⚙️ Añadir Servicio',
+            text: 'Ahora haz clic en el botón <b>Añadir Servicio</b> para asignarle un producto o plan de servicios.',
+            attachTo: { element: '#tour-client-add-service-btn', on: 'bottom' },
+            buttons: [],
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-client-add-service-btn', 'clients'),
+            advanceOn: { selector: '#tour-client-add-service-btn', event: 'click' }
+        });
+
+        tour.addStep({
+            id: 'clients-add-practice-select-product',
+            title: '📦 Seleccione un Producto',
+            text: 'Elige un producto simulado del listado desplegable. Al seleccionarlo, se asignará su precio de forma automática.',
+            attachTo: { element: '#tour-client-service-select', on: 'bottom' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-client-service-select', 'clients')
+        });
+
+        tour.addStep({
+            id: 'clients-add-practice-save',
+            title: '💾 Guardar Cliente',
+            text: '¡Perfecto! Ya tienes todo listo. Haz clic en <b>Guardar</b> para registrar el cliente de práctica en tu directorio.',
+            attachTo: { element: '#tour-client-save-btn', on: 'bottom' },
+            buttons: [],
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-client-save-btn', 'clients')
+        });
+
+        tour.addStep({
+            id: 'clients-profile-intro',
+            title: '📁 Expediente Digital del Cliente',
+            text: '¡Excelente! Ahora estamos dentro de su expediente digital. Aquí tienes toda la información centralizada y organizada de este cliente.',
+            attachTo: { element: '#tour-client-profile-container', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureClientProfile('#tour-client-profile-container', 'general')
+        });
+
+        tour.addStep({
+            id: 'clients-profile-general',
+            title: '⚙️ Aspectos Generales',
+            text: 'En esta sección de <b>Aspectos Generales</b> puedes gestionar la configuración base y ver los servicios contratados con sus montos.',
+            attachTo: { element: '#tour-client-general-card', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureClientProfile('#tour-client-general-card', 'general')
+        });
+
+        tour.addStep({
+            id: 'clients-profile-docs-tab',
+            title: '📂 Pestaña de Documentos',
+            text: 'Haz clic aquí para acceder a la gestión documental del cliente.',
+            attachTo: { element: '#tour-tab-docs', on: 'bottom' },
+            buttons: [],
+            advanceOn: { selector: '#tour-tab-docs', event: 'click' },
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureClientProfile('#tour-tab-docs', 'general')
+        });
+
+        tour.addStep({
+            id: 'clients-profile-docs',
+            title: '📄 Sección de Documentos',
+            text: 'En la pestaña de <b>Documentos</b> tienes acceso al Gestor Documental de este cliente. Aquí puedes cargar, consultar y organizar contratos, propuestas o cualquier archivo de forma segura.',
+            attachTo: { element: '#tour-client-docs-container', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureClientProfile('#tour-client-docs-container', 'docs')
+        });
+
+        tour.addStep({
+            id: 'clients-profile-tasks-tab',
+            title: '📅 Pestaña de Tareas',
+            text: 'Desde aquí podrás ver y gestionar todas las actividades pendientes del cliente.',
+            attachTo: { element: '#tour-tab-tasks', on: 'bottom' },
+            buttons: [],
+            advanceOn: { selector: '#tour-tab-tasks', event: 'click' },
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureClientProfile('#tour-tab-tasks', 'docs')
+        });
+
+        tour.addStep({
+            id: 'clients-profile-tasks',
+            title: '📋 Sección de Tareas',
+            text: 'En la pestaña <b>Tareas</b> puedes gestionar el listado de actividades asignadas específicamente a este cliente, asegurando un seguimiento riguroso de cada entregable.',
+            attachTo: { element: '#tour-client-tasks-container', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureClientProfile('#tour-client-tasks-container', 'tasks')
+        });
+
+        tour.addStep({
+            id: 'clients-profile-tasks-status',
+            title: '✅ Completar Tareas',
+            text: 'Utiliza estos círculos para marcar las tareas como finalizadas con un solo clic. El sistema las tachará y las moverá automáticamente a la sección de completadas.',
+            attachTo: { element: '#tour-task-status-btn', on: 'left' },
+            buttons,
+            beforeShowPromise: () => ensureClientProfile('#tour-task-status-btn', 'tasks')
+        });
+
+        tour.addStep({
+            id: 'clients-profile-tasks-actions',
+            title: '⚙️ Acciones de Tarea',
+            text: 'En este bloque puedes <b>Editar</b> los detalles de una tarea o <b>Eliminarla</b> si ya no es necesaria.',
+            attachTo: { element: '#tour-task-actions', on: 'left' },
+            buttons,
+            beforeShowPromise: () => ensureClientProfile('#tour-task-actions', 'tasks')
+        });
+
+        tour.addStep({
+            id: 'clients-profile-tasks-completed',
+            title: '🎉 Tareas Finalizadas',
+            text: 'En esta sección podrás revisar todas las actividades que ya han sido completadas, manteniendo un historial claro del progreso.',
+            attachTo: { element: '#tour-tasks-completed-section', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureClientProfile('#tour-tasks-completed-section', 'tasks')
+        });
+
+        tour.addStep({
+            id: 'clients-profile-tasks-new',
+            title: '➕ Nueva Tarea',
+            text: '¿Necesitas agregar una nueva actividad? Haz clic en este botón para registrar una nueva tarea rápidamente para este cliente.',
+            attachTo: { element: '#tour-task-new-btn', on: 'bottom' },
+            buttons: [],
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureClientProfile('#tour-task-new-btn', 'tasks')
+        });
+
+        tour.addStep({
+            id: 'task-form-name',
+            title: '📝 Título de la Tarea',
+            text: 'Escribe un nombre descriptivo para la actividad que vas a registrar.',
+            attachTo: { element: '#tour-task-name', on: 'bottom' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-task-name', 'clientProfile')
+        });
+
+        tour.addStep({
+            id: 'task-form-desc',
+            title: '📄 Descripción',
+            text: 'Añade detalles adicionales o instrucciones específicas sobre lo que se debe hacer.',
+            attachTo: { element: '#tour-task-desc', on: 'bottom' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-task-desc', 'clientProfile')
+        });
+
+        tour.addStep({
+            id: 'task-form-assignee',
+            title: '👤 Asignar Responsable',
+            text: 'Selecciona al integrante del equipo que se encargará de ejecutar esta tarea.',
+            attachTo: { element: '#tour-task-assignee', on: 'bottom' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-task-assignee', 'clientProfile')
+        });
+
+        tour.addStep({
+            id: 'task-form-priority',
+            title: '🚩 Prioridad',
+            text: 'Define la urgencia de la tarea: Baja, Media o Alta.',
+            attachTo: { element: '#tour-task-priority', on: 'bottom' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-task-priority', 'clientProfile')
+        });
+
+        tour.addStep({
+            id: 'task-form-date',
+            title: '📅 Fecha Límite',
+            text: 'Selecciona en el calendario el día máximo para completar esta actividad.',
+            attachTo: { element: '#tour-task-date', on: 'top' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-task-date', 'clientProfile')
+        });
+
+        tour.addStep({
+            id: 'task-form-save',
+            title: '💾 Guardar Tarea',
+            text: '¡Listo! Haz clic en <b>Guardar</b> para registrar la tarea en el expediente del cliente.',
+            attachTo: { element: '#tour-task-save', on: 'bottom' },
+            buttons: [],
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-task-save', 'clientProfile')
+        });
+
+        tour.addStep({
+            id: 'task-created',
+            title: '✅ Tarea Creada',
+            text: '¡Excelente! Tu tarea ha sido creada y aparece en el listado. Aquí podrás verla siempre que la necesites.',
+            attachTo: { element: '#tour-task-item', on: 'bottom' },
+            buttons: [
+                {
+                    text: 'Siguiente',
+                    action: tour.next
+                }
+            ],
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-task-item', 'clientProfile')
+        });
+
+        tour.addStep({
+            id: 'nav-tasks',
+            title: '📋 Tablero Global',
+            text: 'Ahora vamos al <b>Tablero de Tareas</b>. Aquí se ven las tareas de TODOS los clientes en un solo lugar.',
+            attachTo: { element: '#tour-nav-tasks_global', on: 'right' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-nav-tasks_global', 'tasks_global')
+        });
+
+        tour.addStep({
+            id: 'tasks-grid',
+            title: '📋 Listado de Tareas',
+            text: 'Esta es la sección donde podrás visualizar y administrar todas las tareas en un solo lugar.',
+            attachTo: { element: '#tour-tasks-grid', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-tasks-grid', 'tasks_global')
+        });
+
+        tour.addStep({
+            id: 'tasks-filters',
+            title: '🔍 Control de Tareas',
+            text: 'Utiliza los filtros en la parte superior para buscar tareas por estado, prioridad o fecha.',
+            attachTo: { element: '#tour-tasks-filters', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-tasks-filters', 'tasks_global')
+        });
+
+        tour.addStep({
+            id: 'tasks-col-tarea',
+            title: '📌 Tarea',
+            text: 'Esta columna muestra el título y una breve descripción de la actividad a realizar.',
+            attachTo: { element: '#tour-col-tarea', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-col-tarea', 'tasks_global')
+        });
+
+        tour.addStep({
+            id: 'tasks-col-cliente',
+            title: '🏢 Cliente Asociado',
+            text: 'Aquí verás a qué cliente pertenece la tarea, así sabrás para quién es el trabajo.',
+            attachTo: { element: '#tour-col-cliente', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-col-cliente', 'tasks_global')
+        });
+
+        tour.addStep({
+            id: 'tasks-col-responsable',
+            title: '👤 Responsable',
+            text: 'Indica qué miembro de tu equipo está asignado para completarla.',
+            attachTo: { element: '#tour-col-responsable', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-col-responsable', 'tasks_global')
+        });
+
+        tour.addStep({
+            id: 'tasks-col-prioridad',
+            title: '⚡ Prioridad',
+            text: 'Te indica si la tarea es de urgencia Alta, Media o Baja, para que sepas qué atacar primero.',
+            attachTo: { element: '#tour-col-prioridad', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-col-prioridad', 'tasks_global')
+        });
+
+        tour.addStep({
+            id: 'tasks-col-vencimiento',
+            title: '📅 Vencimiento',
+            text: 'Muestra la fecha límite para completar la tarea.',
+            attachTo: { element: '#tour-col-vencimiento', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-col-vencimiento', 'tasks_global')
+        });
+
+        tour.addStep({
+            id: 'nav-products',
+            title: '📦 Catálogo de Servicios',
+            text: 'En la sección de <b>Servicios</b> configuras tu catálogo.',
+            attachTo: { element: '#tour-nav-products', on: 'right' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-nav-products', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-grid',
+            title: '📋 Listado de Servicios',
+            text: 'Aquí es donde defines todos los servicios que ofreces.',
+            attachTo: { element: '#tour-products-grid', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-products-grid', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-col-nombre',
+            title: '🏷️ Nombre',
+            text: 'El nombre comercial del servicio que ofreces.',
+            attachTo: { element: '#tour-col-nombre-del-servicio', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-col-nombre-del-servicio', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-col-descripcion',
+            title: '📄 Descripción',
+            text: 'Una breve explicación de qué incluye el servicio.',
+            attachTo: { element: '#tour-col-descripci-n', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-col-descripci-n', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-col-precio',
+            title: '💲 Precio Base',
+            text: 'El costo estándar que cobrarás por este servicio.',
+            attachTo: { element: '#tour-col-precio-base', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-col-precio-base', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-col-comision',
+            title: '📈 Comisión',
+            text: 'El porcentaje que se llevará como comisión la persona que logre la venta.',
+            attachTo: { element: '#tour-col-comisi-n----', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-col-comisi-n----', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-col-estado',
+            title: '✅ Estado',
+            text: 'Si un servicio ya no se ofrece, puedes desactivarlo aquí.',
+            attachTo: { element: '#tour-col-estado', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-col-estado', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-actions',
+            title: '⚙️ Editar y Eliminar',
+            text: 'En este bloque puedes <b>Editar</b> los detalles de un servicio o <b>Eliminarlo</b> si ya no es necesario.',
+            attachTo: { element: '#tour-service-actions', on: 'left' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-service-actions', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-add',
+            title: '➕ Práctica: Crear Servicio',
+            text: '¡Haz clic en el botón para crear un nuevo servicio!',
+            attachTo: { element: '#tour-products-add-btn', on: 'left' },
+            advanceOn: { selector: '#tour-products-add-btn', event: 'click' },
+            buttons: [],
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-products-add-btn', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-add-practice-name',
+            title: '🏷️ Nombre',
+            text: 'Escribe el nombre de tu nuevo servicio.',
+            attachTo: { element: '#tour-product-name', on: 'bottom' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-product-name', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-add-practice-desc',
+            title: '📄 Descripción',
+            text: 'Añade una breve explicación.',
+            attachTo: { element: '#tour-product-description', on: 'bottom' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-product-description', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-add-practice-price',
+            title: '💲 Precio Base',
+            text: 'Define el costo del servicio.',
+            attachTo: { element: '#tour-product-price', on: 'bottom' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-product-price', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-add-practice-commission',
+            title: '💰 Comision',
+            text: 'Establece la comisión asociada.',
+            attachTo: { element: '#tour-product-commission', on: 'bottom' },
+            buttons: nextOnlyButtons,
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-product-commission', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-add-practice-save',
+            title: '💾 Guardar',
+            text: '¡Haz clic aquí para guardar tu nuevo servicio!',
+            attachTo: { element: '#tour-product-save-btn', on: 'bottom' },
+            buttons: [],
+            cancelIcon: { enabled: false },
+            beforeShowPromise: () => ensureElement('#tour-product-save-btn', 'products')
+        });
+
+        tour.addStep({
+            id: 'products-created',
+            title: '✅ Servicio Creado',
+            text: '¡Excelente! Tu servicio ha sido creado y aparece posicionado de primero en el catálogo.',
+            attachTo: { element: '#tour-service-item', on: 'bottom' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-service-item', 'products')
+        });
+        
+        tour.addStep({
+            id: 'nav-commissions',
+            title: '💰 Comisiones',
+            text: 'En <b>Comisiones</b> verás el desglose automático de comisiones.',
+            attachTo: { element: '#tour-nav-commissions', on: 'right' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-nav-commissions', 'commissions')
+        });
+
+        tour.addStep({
+            id: 'nav-settings',
+            title: '⚙️ Configuración',
+            text: 'En <b>Configuración</b> personalizas tu perfil y tu equipo.',
+            attachTo: { element: '#tour-nav-settings', on: 'right' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-nav-settings', 'settings')
+        });
+
+        tour.addStep({
+            id: 'settings-container',
+            title: '⚙️ Módulo de Configuración',
+            text: 'Aquí tienes la sección completa de configuración para personalizar tu perfil y administrar las opciones de la plataforma.',
+            attachTo: { element: '#tour-settings-container', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-settings-container', 'settings')
+        });
+
+        tour.addStep({
+            id: 'settings-users-tab',
+            title: '👥 Sección de Usuarios',
+            text: 'En esta opción del menú puedes gestionar a los miembros de tu equipo de trabajo.',
+            attachTo: { element: '#tour-settings-users-tab', on: 'right' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-settings-users-tab', 'settings')
+        });
+
+        tour.addStep({
+            id: 'settings-users-table',
+            title: '📋 Gestión e Información de Usuarios',
+            text: 'Al ingresar a la sección de usuarios puedes consultar y gestionar el bloque completo de tu equipo: su <b>Estado</b> (Activo/Inactivo), <b>Nombre</b>, <b>Correo electrónico</b> y <b>Rol</b> asignado.',
+            attachTo: { element: '#tour-settings-users-table', on: 'top' },
+            buttons,
+            beforeShowPromise: () => ensureSettingsTab('#tour-settings-users-table', 'Usuarios')
+        });
+
+        tour.addStep({
+            id: 'settings-logout',
+            title: '🚪 Cerrar Sesión',
+            text: 'En este apartado puedes finalizar tu sesión de forma segura cuando termines de trabajar en la plataforma.',
+            attachTo: { element: '#tour-settings-logout', on: 'right' },
+            buttons,
+            beforeShowPromise: () => ensureElement('#tour-settings-logout', 'settings')
+        });
+
+        tour.addStep({
+            id: 'tour-finish',
+            title: '🎉 ¡Tour Completado!',
+            text: 'Has completado el recorrido. ¡Ahora tienes todo listo para gestionar tu negocio como un profesional!',
+            attachTo: { element: '#tour-nav-dashboard', on: 'right' },
+            buttons: lastButtons,
+            beforeShowPromise: () => ensureElement('#tour-nav-dashboard', 'dashboard')
+        });
+
+        tour.on('cancel', () => {
+            endTourAndRestore();
+        });
+        
+        tour.on('complete', () => {
+            endTourAndRestore();
+        });
+
+        tour.start();
 
         return () => {
-            if (intervalId) clearInterval(intervalId);
+            if (tour) {
+                tour.cancel();
+            }
+            (window as any).shepherdTour = null;
         };
-    }, [pendingTourStep, currentView, onboardingPhase]);
+    }, [onboardingPhase]);
 
-    const handleStartJoyrideTour = () => {
-        navigateTo('dashboard');
-        setTourStepIndex(0);
-        setPendingTourStep(0);
-        setOnboardingPhase('tour');
-    };
-
-    const handleJoyrideCallback = async (data: any) => {
-        const { action, index, status, type } = data;
-        
-        if (status === 'finished' || status === 'skipped' || action === 'close') {
-            setOnboardingPhase('done');
-            setPendingTourStep(null);
-            setProfile((prev: any) => ({ ...prev, ha_visto_tutorial: true }));
-            if (user) {
-                localStorage.setItem(`visto_tutorial_${user.id}`, 'true');
-                try {
-                    await supabase.from('profiles').update({ ha_visto_tutorial: true }).eq('id', user.id);
-                } catch (err) {
-                    console.error("Error updating tutorial status:", err);
-                }
-            }
-            return;
-        }
-
-        if (type === 'step:after') {
-            const nextStep = action === 'prev' ? index - 1 : index + 1;
-            if (nextStep >= 0 && nextStep < tourSteps.length) {
-                const requiredViewForNext = getRequiredViewForStep(nextStep);
-                if (currentView !== requiredViewForNext) {
-                    // Transición entre secciones: cambiamos la vista y ponemos el paso pendiente
-                    navigateTo(requiredViewForNext);
-                    setPendingTourStep(nextStep);
-                } else {
-                    // Misma sección: actualizamos el paso de manera inmediata y síncrona
-                    setTourStepIndex(nextStep);
-                }
-            }
-        } else if (type === 'target:not_found') {
-            if (index >= 0 && index < tourSteps.length) {
-                const requiredViewForStep = getRequiredViewForStep(index);
-                if (currentView !== requiredViewForStep) {
-                    navigateTo(requiredViewForStep);
-                }
-                setPendingTourStep(index);
-            }
-        }
-    };
-
-    // Intro loading state synchronized with actual data readiness
     const [introLoading, setIntroLoading] = useState(true);
 
     const [userToDelete, setUserToDelete] = useState<any>(null);
@@ -4507,6 +5748,45 @@ const AppLayout = () => {
                         <span className="text-xs font-medium text-slate-500 tracking-wide">
                             Cargando...
                         </span>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    }
+
+    if (hasSentToOtherTab) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center select-none antialiased font-sans">
+                <motion.div 
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full max-w-md bg-white rounded-2xl border border-slate-100 shadow-sm p-8"
+                >
+                    <div className="flex justify-center mb-6">
+                        <div className="p-4 bg-emerald-50 rounded-full text-emerald-600 flex items-center justify-center w-16 h-16 shadow-inner">
+                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800 mb-3 tracking-tight font-sans">
+                        Pestaña original actualizada
+                    </h2>
+                    <p className="text-slate-500 text-sm leading-relaxed mb-8 max-w-sm mx-auto font-sans">
+                        Hemos activado el formulario para restablecer tu contraseña en la pestaña que ya tenías abierta. Por seguridad y para evitar duplicados, continúa allí.
+                    </p>
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => {
+                                window.close();
+                            }}
+                            className="w-full py-3 px-6 bg-[#203e71] hover:bg-[#2b5192] active:bg-[#1b345d] text-white font-semibold rounded-xl text-sm transition-colors shadow-sm cursor-pointer animate-none"
+                        >
+                            Cerrar esta pestaña
+                        </button>
+                        <p className="text-xs text-slate-400 font-sans">
+                            Si esta ventana no se cierra sola, puedes cerrarla manualmente.
+                        </p>
                     </div>
                 </motion.div>
             </div>
@@ -4579,85 +5859,12 @@ const AppLayout = () => {
     // Temp mode: Always show onboarding welcome screen and tour until requested otherwise
     const needsOnboarding = !introLoading && !loading && user && !isInviteFlow && !isRecoveryFlow;
     const showRobotWelcome = needsOnboarding && onboardingPhase === 'robot';
-    const runJoyrideTour = needsOnboarding && onboardingPhase === 'tour';
-    const JoyrideComponent = Joyride as any;
-
     return (
         <div className="flex h-screen bg-[#f8fafc] font-sans text-gray-900 overflow-hidden">
             <OnboardingRobot 
                 isOpen={showRobotWelcome}
-                onStartTour={handleStartJoyrideTour}
+                onStartTour={handleStartShepherdTour}
                 onSkipAll={handleSkipAllOnboarding}
-            />
-            <JoyrideComponent
-                steps={tourSteps}
-                run={runJoyrideTour}
-                stepIndex={tourStepIndex}
-                continuous={true}
-                showSkipButton={true}
-                showProgress={true}
-                disableBeacon={true}
-                skipBeacon={true}
-                spotlightClicks={false}
-                disableOverlayClose={true}
-                spotLightPadding={8}
-                floaterProps={{ disableAnimation: true }}
-                locale={{
-                    back: 'Anterior',
-                    close: 'Cerrar',
-                    last: '¡Finalizar! 🎉',
-                    next: 'Siguiente ➔',
-                    open: 'Abrir',
-                    skip: 'Omitir Tour'
-                }}
-                callback={handleJoyrideCallback}
-                styles={{
-                    options: {
-                        arrowColor: '#ffffff',
-                        backgroundColor: '#ffffff',
-                        overlayColor: 'rgba(15, 23, 42, 0.55)',
-                        primaryColor: '#00a2e8',
-                        textColor: '#334155',
-                        zIndex: 10000,
-                    },
-                    tooltipContainer: {
-                        textAlign: 'left',
-                        borderRadius: '20px',
-                        padding: '18px',
-                        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)'
-                    },
-                    buttonNext: {
-                        backgroundColor: '#00a2e8',
-                        borderRadius: '12px',
-                        color: '#ffffff',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        padding: '9px 20px',
-                        outline: 'none',
-                        boxShadow: '0 4px 14px rgba(0, 162, 232, 0.4)',
-                        transition: 'all 0.2s',
-                        cursor: 'pointer'
-                    },
-                    buttonBack: {
-                        color: '#64748b',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        marginRight: '12px',
-                        cursor: 'pointer'
-                    },
-                    buttonSkip: {
-                        color: '#94a3b8',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                    },
-                    title: {
-                        fontSize: '16px',
-                        fontWeight: 800,
-                        color: '#0f172a',
-                        marginBottom: '8px'
-                    }
-                } as any}
             />
             <GlobalStyles />
             {/* Sidebar */}
@@ -4674,17 +5881,24 @@ const AppLayout = () => {
 
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-                    {navItems.map((item, index) => (
-                        <SidebarItem 
-                            key={item.id}
-                            id={item.id}
-                            label={item.label}
-                            icon={item.icon}
-                            index={index}
-                            active={currentView === item.id || (item.id === 'clients' && currentView === 'clientProfile')}
-                            onClick={(id: string) => navigateTo(id)}
-                        />
-                    ))}
+                    {navItems.map((item, index) => {
+                        let isActive = currentView === item.id || (item.id === 'clients' && currentView === 'clientProfile');
+                        if (isTourMode && tourActiveNavId !== null) {
+                            isActive = (item.id === tourActiveNavId);
+                        }
+                        return (
+                            <SidebarItem 
+                                key={item.id}
+                                id={item.id}
+                                label={item.label}
+                                icon={item.icon}
+                                index={index}
+                                active={isActive}
+                                onClick={(id: string) => navigateTo(id)}
+                                disabled={isTourMode}
+                            />
+                        );
+                    })}
                 </nav>
 
                 {/* User Profile */}

@@ -10,10 +10,32 @@ body {
 }
 
 /* Custom Joyride Spotlight Glow and Pro Tooltip Styles */
-.__joyride__spotlight, .react-joyride__spotlight {
+.shepherd-modal-overlay-container {
+  z-index: 100000 !important;
+}
+
+.shepherd-element {
+  z-index: 100001 !important;
+}
+
+.shepherd-enabled, .shepherd-target {
   border-radius: 16px !important;
   box-shadow: 0 0 0 4px #00a2e8, 0 0 30px rgba(0, 162, 232, 0.65) !important;
   transition: all 0.3s ease-in-out !important;
+  z-index: 100002 !important;
+}
+
+/* Custom highlighted sidebar navigation buttons in tutorial mode */
+.shepherd-enabled[id^="tour-nav-"],
+.shepherd-target[id^="tour-nav-"] {
+  background-color: #203e71 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.shepherd-enabled[id^="tour-nav-"] svg,
+.shepherd-target[id^="tour-nav-"] svg {
+  color: #488fcc !important;
 }
 
 .__joyride__tooltip {

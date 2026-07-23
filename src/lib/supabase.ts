@@ -92,7 +92,8 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
-    autoRefreshToken: true
+    autoRefreshToken: true,
+    flowType: 'pkce'
   },
   global: {
     fetch: customFetch
