@@ -5700,6 +5700,7 @@ const AppLayout = () => {
     }, [onboardingPhase]);
 
     const [introLoading, setIntroLoading] = useState(true);
+    const hasInitializedRef = React.useRef(false);
 
     const [userToDelete, setUserToDelete] = useState<any>(null);
     const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -5711,15 +5712,17 @@ const AppLayout = () => {
     useEffect(() => {
         if (!user || isInviteFlow || isRecoveryFlow) {
             setIntroLoading(true);
+            hasInitializedRef.current = false;
             return;
         }
 
-        if (!loading) {
+        if (!loading && !hasInitializedRef.current) {
             const timer = setTimeout(() => {
                 setIntroLoading(false);
+                hasInitializedRef.current = true;
             }, 250);
             return () => clearTimeout(timer);
-        } else {
+        } else if (!hasInitializedRef.current) {
             setIntroLoading(true);
         }
     }, [user, loading, isInviteFlow, isRecoveryFlow]);
