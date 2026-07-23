@@ -9,6 +9,18 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Prevent outline/border on charts and SVGs when clicked */
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-layer:focus,
+.recharts-sector:focus,
+svg:focus,
+g:focus,
+path:focus,
+rect:focus {
+  outline: none !important;
+}
+
 /* Custom Joyride Spotlight Glow and Pro Tooltip Styles */
 .shepherd-modal-overlay-container {
   z-index: 100000 !important;

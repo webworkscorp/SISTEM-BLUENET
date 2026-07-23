@@ -125,7 +125,6 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isExpired, setIsExpired] = useState(false);
@@ -278,39 +277,6 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
             }
         } catch (err: any) {
             setError('Correo o contraseña incorrectos');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleForgotPassword = async (e: React.MouseEvent | React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-        setSuccessMessage(null);
-
-        const trimmedEmail = email.trim();
-
-        if (!trimmedEmail) {
-            setError('Por favor, ingresa tu correo electrónico primero para enviarte el enlace de recuperación.');
-            return;
-        }
-
-        setLoading(true);
-        const timestamp = Date.now();
-        const generatedLink = `${window.location.origin}/?t=${timestamp}`;
-
-        try {
-            const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-                redirectTo: generatedLink,
-            });
-
-            if (resetError) {
-                console.error('Password reset notice:', JSON.stringify(resetError, null, 2));
-            }
-            setSuccessMessage('Si el correo existe en nuestro sistema, recibirás un enlace de recuperación en breve.');
-        } catch (err: any) {
-            console.error('Password reset catch:', err.message);
-            setSuccessMessage('Si el correo existe en nuestro sistema, recibirás un enlace de recuperación en breve.');
         } finally {
             setLoading(false);
         }
@@ -712,27 +678,8 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
 
                     {/* Right Panel (Form) */}
                     <div className="right-panel">
-                        {isForgotPasswordMode && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setIsForgotPasswordMode(false);
-                                    setError(null);
-                                    setSuccessMessage(null);
-                                }}
-                                className="absolute top-6 left-8 z-20 inline-flex items-center gap-2 text-xs font-semibold text-white bg-[var(--btn-blue)] hover:bg-[var(--btn-blue-hover)] px-4 py-2 rounded-md shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
-                            >
-                                <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1 stroke-[2.2]" />
-                                <span>Volver a iniciar sesión</span>
-                            </button>
-                        )}
-
                         <form id="authForm" onSubmit={(e) => {
-                            if (isForgotPasswordMode) {
-                                handleForgotPassword(e);
-                            } else {
-                                handleLogin(e);
-                            }
+                            handleLogin(e);
                         }}>
                             {error && (
                                 <div className="alert-box alert-error !flex items-center !gap-3 !p-2.5 !pr-3.5 !rounded-2xl !bg-gradient-to-r !from-red-50/95 !via-rose-50/90 !to-red-50/80 !border !border-red-200/90 !shadow-[0_8px_20px_-6px_rgba(239,68,68,0.18)] !text-red-900 !mb-5 overflow-hidden relative transition-all animate-in fade-in slide-in-from-top-2 duration-300">
@@ -814,7 +761,7 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
                                 </div>
                             ) : (
                                 <>
-                                    {isInviteFlow && !isRecoveryFlow && !isForgotPasswordMode && (
+                                    {isInviteFlow && !isRecoveryFlow && (
                                         <div className="form-group">
                                             <label htmlFor="username">Nombre de usuario</label>
                                             <input 
@@ -846,34 +793,32 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
                                         </div>
                                     )}
 
-                                    {!isForgotPasswordMode && (
-                                        <div className="form-group">
-                                            <label htmlFor="password">
-                                                {isRecoveryFlow ? 'Nueva contraseña' : isInviteFlow ? 'Crear contraseña' : 'Contraseña'}
-                                            </label>
-                                            <input 
-                                                type={showPassword ? "text" : "password"} 
-                                                id="password" 
-                                                className="form-control" 
-                                                placeholder="••••••••••••" 
-                                                value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
-                                                required 
-                                                minLength={isRecoveryFlow ? 8 : undefined}
-                                                style={{ paddingRight: '45px' }}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer flex items-center justify-center p-1"
-                                                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                                            >
-                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                            </button>
-                                        </div>
-                                    )}
+                                    <div className="form-group">
+                                        <label htmlFor="password">
+                                            {isRecoveryFlow ? 'Nueva contraseña' : isInviteFlow ? 'Crear contraseña' : 'Contraseña'}
+                                        </label>
+                                        <input 
+                                            type={showPassword ? "text" : "password"} 
+                                            id="password" 
+                                            className="form-control" 
+                                            placeholder="••••••••••••" 
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required 
+                                            minLength={isRecoveryFlow ? 8 : undefined}
+                                            style={{ paddingRight: '45px' }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer flex items-center justify-center p-1"
+                                            title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                        >
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
 
-                                    {(isInviteFlow || isRecoveryFlow) && !isForgotPasswordMode && (
+                                    {(isInviteFlow || isRecoveryFlow) && (
                                         <div className="form-group">
                                             <label htmlFor="confirmPassword">Confirmar nueva contraseña</label>
                                             <input 
@@ -898,7 +843,7 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
                                         </div>
                                     )}
 
-                                    {!isInviteFlow && !isRecoveryFlow && !isForgotPasswordMode && (
+                                    {!isInviteFlow && !isRecoveryFlow && (
                                         <div className="form-actions" id="formActions">
                                             <label className="remember-me">
                                                 <input 
@@ -909,20 +854,14 @@ export const Login = ({ onAuthSuccess, isInviteFlow, isRecoveryFlow, inviteUser 
                                                 />
                                                 Recordarme
                                             </label>
-                                            <a href="#" className="forgot-password" onClick={(e) => {
-                                                e.preventDefault();
-                                                setIsForgotPasswordMode(true);
-                                                setError(null);
-                                                setSuccessMessage(null);
-                                            }}>¿Olvidaste tu contraseña?</a>
                                         </div>
                                     )}
 
                                     <div className="btn-group">
                                         <button type="submit" className="btn btn-login" id="primaryBtn" disabled={loading}>
                                             {loading 
-                                                ? (isRecoveryFlow ? 'Guardando e iniciando...' : isForgotPasswordMode ? 'Enviando...' : isInviteFlow ? 'Registrando...' : 'Iniciando sesión...') 
-                                                : (isRecoveryFlow ? 'Guardar contraseña e iniciar sesión' : isForgotPasswordMode ? 'Enviar enlace de recuperación' : isInviteFlow ? 'Completar Registro' : 'Iniciar Sesión')
+                                                ? (isRecoveryFlow ? 'Guardando e iniciando...' : isInviteFlow ? 'Registrando...' : 'Iniciando sesión...') 
+                                                : (isRecoveryFlow ? 'Guardar contraseña e iniciar sesión' : isInviteFlow ? 'Completar Registro' : 'Iniciar Sesión')
                                             }
                                         </button>
                                     </div>
